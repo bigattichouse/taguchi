@@ -31,6 +31,8 @@
 #define ASSERT_NULL(ptr) ASSERT((ptr) == NULL)
 #define ASSERT_NOT_NULL(ptr) ASSERT((ptr) != NULL)
 #define ASSERT_DOUBLE_EQ(a, b, epsilon) ASSERT(fabs((a) - (b)) < (epsilon))
+#define ASSERT_TRUE(condition) ASSERT(condition)
+#define ASSERT_FALSE(condition) ASSERT(!(condition))
 
 #endif /* TEST_FRAMEWORK_H */
 

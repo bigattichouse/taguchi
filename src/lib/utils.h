@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <stddef.h>
+#include "../../src/config.h"  // Include config for constants
 
 /* Memory management wrappers that exit on failure */
 void *xmalloc(size_t size);

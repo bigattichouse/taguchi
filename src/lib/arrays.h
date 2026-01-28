@@ -2,6 +2,7 @@
 #define ARRAYS_H
 
 #include <stddef.h>
+#include "../../src/config.h"  // Include config for constants
 
 /* Orthogonal array structure (internal) */
 typedef struct {
