@@ -1,6 +1,789 @@
 CHOCOLATE CHIP COOKIE EXPERIMENT RECIPE CARDS
 ===========================================
 
-Generated: Wed Jan 28 12:44:18 PM CST 2026
+Generated: Wed Jan 28 01:32:28 PM CST 2026
 Total runs: 27
+
+RECIPE CARD 1
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 1
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 325F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 2
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 1
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 375F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 3
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 1
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 350F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 4
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 2
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 375F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 5
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 2
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 350F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 6
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 2
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 325F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 7
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 3
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 350F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 8
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 3
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 325F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 9
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 3
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 375F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 10
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 2
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 350F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 11
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 3
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 350F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 12
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 2
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 325F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 13
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 1
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 375F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 14
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 3
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 375F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 15
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 2
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 375F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 16
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 3
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 325F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 17
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 1
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 350F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 18
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 2
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 325F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 19
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 3
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 375F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 20
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 2
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 325F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 21
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1/2 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 1
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 375F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 22
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 3
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 350F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 23
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 1
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 325F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 24
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 3/4 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 2
+  - Chocolate Chips: 1/2 cup
+  - Oven Temperature: 375F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 25
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 1:1 brown:white
+  - Flour Type: bread_flour
+  - Eggs: 3
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 325F
+  - Baking Time: 10min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 26
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 2:1 brown:white
+  - Flour Type: all_purpose
+  - Eggs: 1
+  - Chocolate Chips: 1 cup
+  - Oven Temperature: 350F
+  - Baking Time: 8min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
+
+RECIPE CARD 27
+=============
+
+INGREDIENT MEASUREMENTS:
+  - Butter: 1 cup
+  - Sugar Ratio: 3:1 brown:white
+  - Flour Type: cake_flour
+  - Eggs: 2
+  - Chocolate Chips: 3/4 cup
+  - Oven Temperature: 350F
+  - Baking Time: 12min
+
+INSTRUCTIONS:
+  1. Gather ingredients according to measurements above
+  2. Preheat oven to specified temperature
+  3. Prepare dough following standard technique
+  4. Bake for specified time until edges are golden
+  5. Cool completely before evaluation
+  6. Rate cookies and record results in results_template.csv
+
+RATING SHEET:
+  Taste Score (1-10): _______
+  Texture Score (1-10): _______
+  Yield Count: _______
+  Appearance Score (1-10): _______
+  Notes: _________________________
+
+----------------------------------------
 

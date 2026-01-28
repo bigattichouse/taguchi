@@ -100,6 +100,18 @@ bool taguchi_validate_definition(const taguchi_experiment_def_t *def, char *erro
     return validate_experiment_def(&def->internal_def, error_buf);
 }
 
+size_t taguchi_def_get_factor_count(const taguchi_experiment_def_t *def) {
+    if (!def) return 0;
+    return def->internal_def.factor_count;
+}
+
+const char *taguchi_def_get_factor_name(const taguchi_experiment_def_t *def, size_t index) {
+    if (!def) return NULL;
+    if (index >= def->internal_def.factor_count) return NULL;
+
+    return def->internal_def.factors[index].name;
+}
+
 void taguchi_free_definition(taguchi_experiment_def_t *def) {
     if (def) {
         free_experiment_def(&def->internal_def);

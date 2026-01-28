@@ -100,7 +100,7 @@ const char **taguchi_list_arrays(void);
 
 /**
  * Get array information.
- * 
+ *
  * @param name Array name (e.g., "L9")
  * @param rows_out Output: number of runs
  * @param cols_out Output: number of factors
@@ -113,6 +113,23 @@ int taguchi_get_array_info(
     size_t *cols_out,
     size_t *levels_out
 );
+
+/**
+ * Get number of factors in experiment definition.
+ *
+ * @param def Experiment definition
+ * @return Number of factors in the definition
+ */
+size_t taguchi_def_get_factor_count(const taguchi_experiment_def_t *def);
+
+/**
+ * Get factor name by index from experiment definition.
+ *
+ * @param def Experiment definition
+ * @param index Factor index (0-based)
+ * @return Factor name (do not free), or NULL if index out of range
+ */
+const char *taguchi_def_get_factor_name(const taguchi_experiment_def_t *def, size_t index);
 
 /*
  * ============================================================================

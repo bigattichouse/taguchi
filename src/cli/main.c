@@ -104,14 +104,25 @@ static int cmd_generate(int argc, char *argv[]) {
         return 1;
     }
     
-    // Print runs in simple format
+    // Print runs with factor details
     printf("Generated %zu experiment runs:\n", count);
     for (size_t i = 0; i < count; i++) {
         printf("Run %zu: ", taguchi_run_get_id(runs[i]));
-        
-        // For each factor, print its value
-        // For now, we'll just say "Run details available" - we can improve this later
-        printf("Run generated successfully");
+
+        // Get factor count from the original definition to know how many to print
+        size_t factor_count = taguchi_def_get_factor_count(def);
+
+        // Print each factor-value pair
+        for (size_t f = 0; f < factor_count; f++) {
+            const char *factor_name = taguchi_def_get_factor_name(def, f);
+            if (factor_name) {
+                const char *factor_value = taguchi_run_get_value(runs[i], factor_name);
+                if (factor_value) {
+                    if (f > 0) printf(", "); // Comma separator except for first
+                    printf("%s=%s", factor_name, factor_value);
+                }
+            }
+        }
         printf("\n");
     }
     
