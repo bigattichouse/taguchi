@@ -64,6 +64,21 @@ make test
 make check
 ```
 
+### Running Examples
+```bash
+# Python examples
+cd examples/python
+python3 basic_examples.py
+python3 advanced_examples.py
+
+# Node.js examples (requires ffi-napi)
+cd examples/nodejs
+npm install ffi-napi ref-napi  # if needed
+node basic_examples.js
+```
+
+See the [examples/](examples/) directory for complete usage examples in Python and Node.js.
+
 ### Basic Usage Example
 ```c
 #include <taguchi.h>
