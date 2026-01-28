@@ -150,8 +150,5 @@ Run static analysis:
 make check
 ```
 
-## License
-MIT License - see LICENSE file for details.
-
 ## Current Version
 v1.0.0-pre (development in progress)
