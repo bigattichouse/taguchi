@@ -171,7 +171,7 @@ int taguchi_generate_runs(const taguchi_experiment_def_t *def, taguchi_experimen
 
 const char *taguchi_run_get_value(const taguchi_experiment_run_t *run, const char *factor_name) {
     if (!run || !factor_name) return NULL;
-    
+
     // Search for the factor by name and return its value
     for (size_t i = 0; i < run->internal_run.factor_count; i++) {
         if (strcmp(run->internal_run.factor_names[i], factor_name) == 0) {
@@ -179,6 +179,21 @@ const char *taguchi_run_get_value(const taguchi_experiment_run_t *run, const cha
         }
     }
     return NULL;
+}
+
+size_t taguchi_run_get_factor_count(const taguchi_experiment_run_t *run) {
+    if (!run) return 0;
+    return run->internal_run.factor_count;
+}
+
+const char *taguchi_run_get_factor_name_at_index(const taguchi_experiment_run_t *run, size_t index) {
+    if (!run) return NULL;
+
+    if (index >= run->internal_run.factor_count) {
+        return NULL;
+    }
+
+    return run->internal_run.factor_names[index];
 }
 
 size_t taguchi_run_get_id(const taguchi_experiment_run_t *run) {

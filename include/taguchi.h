@@ -138,7 +138,7 @@ int taguchi_generate_runs(
 
 /**
  * Get run configuration value by factor name.
- * 
+ *
  * @param run Experiment run
  * @param factor_name Factor name
  * @return Factor value, or NULL if not found (do not free)
@@ -146,6 +146,28 @@ int taguchi_generate_runs(
 const char *taguchi_run_get_value(
     const taguchi_experiment_run_t *run,
     const char *factor_name
+);
+
+/**
+ * Get factor name by index in run.
+ *
+ * @param run Experiment run
+ * @param index Factor index (0-based)
+ * @return Factor name, or NULL if index out of range (do not free)
+ */
+const char *taguchi_run_get_factor_name_at_index(
+    const taguchi_experiment_run_t *run,
+    size_t index
+);
+
+/**
+ * Get number of factors in run.
+ *
+ * @param run Experiment run
+ * @return Number of factors in the run
+ */
+size_t taguchi_run_get_factor_count(
+    const taguchi_experiment_run_t *run
 );
 
 /**

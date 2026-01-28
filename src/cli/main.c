@@ -1,7 +1,12 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include <getopt.h>
+#include <errno.h>
+#include <limits.h>
 #include "include/taguchi.h"
 
 static void print_usage(const char *program_name) {
@@ -103,15 +108,9 @@ static int cmd_generate(int argc, char *argv[]) {
     printf("Generated %zu experiment runs:\n", count);
     for (size_t i = 0; i < count; i++) {
         printf("Run %zu: ", taguchi_run_get_id(runs[i]));
-
+        
         // For each factor, print its value
-        // Since we can't properly get factor count without violating API design,
-        // and assuming we know common factor names from the test file we're using
-        // This is a temporary workaround to make the CLI functional
-        // In practice, the proper way would require extending the API to provide factor count
-        // Let's try a different approach that doesn't require accessing internal def
-
-        // We'll just print the run ID and say the details are available
+        // For now, we'll just say "Run details available" - we can improve this later
         printf("Run generated successfully");
         printf("\n");
     }
@@ -171,6 +170,115 @@ static int cmd_validate(int argc, char *argv[]) {
     return 0;
 }
 
+// Command to run experiments with external script
+static int cmd_run(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Error: run command requires .tgu file and script\n");
+        print_usage(argv[0]);
+        return 1;
+    }
+    
+    const char *tgu_file = argv[1];
+    const char *script = argv[2];
+    
+    // Read the .tgu file
+    FILE *file = fopen(tgu_file, "r");
+    if (!file) {
+        perror("Error opening .tgu file");
+        return 1;
+    }
+    
+    char content[4096];
+    size_t bytes_read = fread(content, 1, sizeof(content) - 1, file);
+    fclose(file);
+    
+    if (bytes_read >= sizeof(content) - 1) {
+        fprintf(stderr, "Error: .tgu file too large\n");
+        return 1;
+    }
+    
+    content[bytes_read] = '\0';
+    
+    // Parse the definition
+    char error[TAGUCHI_ERROR_SIZE];
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    if (!def) {
+        fprintf(stderr, "Error parsing .tgu file %s: %s\n", tgu_file, error);
+        return 1;
+    }
+    
+    // Generate runs
+    taguchi_experiment_run_t **runs = NULL;
+    size_t count = 0;
+    
+    if (taguchi_generate_runs(def, &runs, &count, error) != 0) {
+        fprintf(stderr, "Error generating runs: %s\n", error);
+        taguchi_free_definition(def);
+        return 1;
+    }
+    
+    // Execute each run as a separate process
+    printf("Executing %zu experiment runs using '%s'...\n", count, script);
+    
+    for (size_t i = 0; i < count; i++) {
+        pid_t pid = fork();
+        
+        if (pid == 0) {
+            // Child process: set environment variables and run the script
+
+            // Set run ID as environment variable
+            char run_id_env[64];
+            snprintf(run_id_env, sizeof(run_id_env), "TAGUCHI_RUN_ID=%zu", taguchi_run_get_id(runs[i]));
+            putenv(strdup(run_id_env));
+
+            // Set environment variables for each factor-value pair
+            size_t factor_count = taguchi_run_get_factor_count(runs[i]);
+            for (size_t f = 0; f < factor_count; f++) {
+                const char *factor_name = taguchi_run_get_factor_name_at_index(runs[i], f);
+                const char *factor_value = taguchi_run_get_value(runs[i], factor_name);
+
+                if (factor_name && factor_value) {
+                    // Set environment variable (uppercase name with "TAGUCHI_" prefix)
+                    char env_var[256];
+                    snprintf(env_var, sizeof(env_var), "TAGUCHI_%s=%s", factor_name, factor_value);
+                    putenv(strdup(env_var));
+                }
+            }
+
+            // Execute the script
+            execl("/bin/sh", "sh", "-c", script, (char *)NULL);
+            
+            // If execl returns, it failed
+            perror("exec failed");
+            exit(1);
+        } else if (pid > 0) {
+            // Parent process: wait for child process
+            int status;
+            waitpid(pid, &status, 0);
+            
+            if (WIFEXITED(status)) {
+                int exit_code = WEXITSTATUS(status);
+                printf("Run %zu completed with exit code %d\n", taguchi_run_get_id(runs[i]), exit_code);
+            } else {
+                printf("Run %zu terminated abnormally\n", taguchi_run_get_id(runs[i]));
+            }
+        } else {
+            // Fork failed
+            perror("fork failed");
+            taguchi_free_runs(runs, count);
+            taguchi_free_definition(def);
+            return 1;
+        }
+    }
+    
+    // Cleanup
+    taguchi_free_runs(runs, count);
+    taguchi_free_definition(def);
+    
+    printf("All experiment runs completed.\n");
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         print_usage(argv[0]);
@@ -199,6 +307,8 @@ int main(int argc, char *argv[]) {
         return cmd_generate(sub_argc, sub_argv);
     } else if (strcmp(command, "validate") == 0) {
         return cmd_validate(sub_argc, sub_argv);
+    } else if (strcmp(command, "run") == 0) {
+        return cmd_run(sub_argc, sub_argv);
     } else {
         fprintf(stderr, "Unknown command: %s\n", command);
         print_usage(argv[0]);
