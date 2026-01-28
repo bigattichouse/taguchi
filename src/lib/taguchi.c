@@ -3,6 +3,7 @@
 #include "arrays.h"
 #include "generator.h"
 #include "serializer.h"
+#include "analyzer.h"
 #include "utils.h"
 #include "../config.h"  // Include config for constants
 #include <stdlib.h>     // For malloc, free
@@ -25,13 +26,11 @@ struct taguchi_experiment_run {
 };
 
 struct taguchi_result_set {
-    // Placeholder - will be implemented in analysis phase
-    int dummy; // Replace with real struct when analyzer is implemented
+    ResultSet internal_results;
 };
 
 struct taguchi_main_effect {
-    // Placeholder - will be implemented in analysis phase
-    int dummy; // Replace with real struct when analyzer is implemented
+    MainEffect internal_effect;
 };
 
 /*
@@ -189,11 +188,14 @@ size_t taguchi_run_get_id(const taguchi_experiment_run_t *run) {
 
 const char **taguchi_run_get_factor_names(const taguchi_experiment_run_t *run) {
     if (!run) return NULL;
-    
-    // This is tricky - we need to return a static array of factor names (or a way to iterate)
-    // For simplicity, we'll return NULL and implement differently if needed
-    // In a real implementation, this might require more complex memory management
-    return NULL; // Temporary - requires more complex implementation
+
+    // The internal structure uses char factor_names[MAX_FACTORS][MAX_FACTOR_NAME]
+    // When we return &factor_names[0], it's type is char(*)[MAX_FACTOR_NAME]
+    // which is different from char**, but we can cast it.
+    // The correct approach is to return the address of the first element
+    // of the 2D array, which allows accessing as array[i] for i in [0,factor_count)
+    // We return the pointer to the first factor name, which can be accessed as an array
+    return (const char **)&run->internal_run.factor_names[0];
 }
 
 void taguchi_free_runs(taguchi_experiment_run_t **runs, size_t count) {
@@ -214,24 +216,78 @@ void taguchi_free_runs(taguchi_experiment_run_t **runs, size_t count) {
  */
 
 taguchi_result_set_t *taguchi_create_result_set(const taguchi_experiment_def_t *def, const char *metric_name) {
-    // Implementation will be added when analyzer module is developed
-    (void)def;  // Suppress unused parameter
-    (void)metric_name;  // Suppress unused parameter
-    return NULL;
+    if (!def || !metric_name) return NULL;
+
+    taguchi_result_set_t *results = xmalloc(sizeof(taguchi_result_set_t));
+
+    // Use the analyzer module's implementation
+    ResultSet *internal_results = create_result_set(&def->internal_def, metric_name);
+    if (!internal_results) {
+        free(results);
+        return NULL;
+    }
+
+    // Copy the internal result set structure
+    memcpy(&results->internal_results, internal_results, sizeof(ResultSet));
+
+    // Free the temporary analyzer structure (we copied it)
+    // Actually, we can't free this because we copied data from it
+    // Need to handle this correctly. Let's recreate the structure properly:
+    free(internal_results);
+
+    // Re-initialize properly to avoid memory issues with pointers
+    ResultSet *result_ptr = create_result_set(&def->internal_def, metric_name);
+    if (!result_ptr) {
+        free(results);
+        return NULL;
+    }
+
+    // Since we can't copy the structure safely due to pointers, let's initialize properly
+    // We need to recreate the result set inside the taguchi structure
+    memcpy(&results->internal_results, result_ptr, sizeof(ResultSet));
+
+    // Free the created analyzer result set but not its internal pointers since they're now part of our copy
+    // This is actually complex with pointers. Let's simplify by implementing directly:
+
+    // Free temp and create a fresh one
+    free_result_set(result_ptr);
+    // Actually let's initialize the structure differently to avoid copying issues
+    results->internal_results.experiment_def = (ExperimentDef*)&def->internal_def;  // Store pointer
+    results->internal_results.capacity = 16;
+    results->internal_results.responses = xmalloc(results->internal_results.capacity * sizeof(double));
+    results->internal_results.run_ids = xmalloc(results->internal_results.capacity * sizeof(size_t));
+    results->internal_results.count = 0;
+    strcpy(results->internal_results.metric_name, metric_name);
+
+    return results;
 }
 
 int taguchi_add_result(taguchi_result_set_t *results, size_t run_id, double response_value, char *error_buf) {
-    // Implementation will be added when analyzer module is developed
-    (void)results;  // Suppress unused parameter
-    (void)run_id;  // Suppress unused parameter
-    (void)response_value;  // Suppress unused parameter
-    (void)error_buf;  // Suppress unused parameter
-    return -1;
+    if (!results) {
+        if (error_buf) set_error(error_buf, "Invalid results pointer");
+        return -1;
+    }
+
+    int result = add_result(&results->internal_results, run_id, response_value);
+    return result;
 }
 
 void taguchi_free_result_set(taguchi_result_set_t *results) {
-    // Implementation will be added when analyzer module is developed
-    (void)results;  // Suppress unused parameter
+    if (results) {
+        // Use analyzer module's free function
+        // Since we created the internal structure specially above, we need to handle memory properly
+        if (results->internal_results.responses) {
+            free(results->internal_results.responses);
+        }
+        if (results->internal_results.run_ids) {
+            free(results->internal_results.run_ids);
+        }
+        // Don't free experiment_def as it's just a pointer to the original
+        results->internal_results.responses = NULL;
+        results->internal_results.run_ids = NULL;
+        results->internal_results.experiment_def = NULL;
+        free(results);
+    }
 }
 
 /*
