@@ -141,7 +141,7 @@ The examples demonstrate proper FFI usage, error handling, and resource manageme
 8. Open a Pull Request
 
 ### 📄 **License**
-MIT License - see the [LICENSE](LICENSE) file for details.
+Public Domain (CC0) - no restrictions on use, modification, or distribution.
 
 ### 🙏 **Acknowledgments**
 - Based on Genichi Taguchi's robust parameter design methodology
