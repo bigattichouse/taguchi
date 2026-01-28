@@ -1,0 +1,25 @@
+{
+  "name": "taguchi-node-examples",
+  "version": "1.0.0",
+  "description": "Node.js examples for Taguchi Array Tool integration",
+  "main": "basic_examples.js",
+  "scripts": {
+    "test": "node basic_examples.js",
+    "example": "node basic_examples.js"
+  },
+  "dependencies": {
+    "ffi-napi": "^4.0.3",
+    "ref-napi": "^3.0.3",
+    "ref-array-napi": "^1.2.1"
+  },
+  "keywords": [
+    "taguchi",
+    "orthogonal",
+    "arrays",
+    "experiments",
+    "design-of-experiments",
+    "ffi"
+  ],
+  "author": "Taguchi Array Tool",
+  "license": "MIT"
+}
