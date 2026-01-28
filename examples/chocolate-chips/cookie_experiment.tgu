@@ -1,0 +1,9 @@
+factors:
+  butter: 1/2 cup, 3/4 cup, 1 cup
+  sugar_ratio: 1:1 brown:white, 2:1 brown:white, 3:1 brown:white
+  flour_type: all_purpose, bread_flour, cake_flour
+  eggs: 1, 2, 3
+  chips: 1/2 cup, 3/4 cup, 1 cup
+  baking_temp: 325F, 350F, 375F
+  baking_time: 8min, 10min, 12min
+array: L27
