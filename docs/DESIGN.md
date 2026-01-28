@@ -71,6 +71,19 @@
   - External command execution with proper argument passing
   - Error handling and validation
 
+#### 10. API Client Examples (Complete)
+- **Status**: ✅ Complete
+- **Files**: `examples/python/`, `examples/nodejs/`
+- **Languages**: Python, Node.js
+- **Features**:
+  - Python ctypes interface to C library
+  - Node.js ffi-napi interface to C library
+  - Basic and advanced usage examples for each language
+  - Proper error handling and resource management
+  - File-based and programmatic workflow examples
+  - Async execution patterns for Node.js
+  - Complete usage demonstrations
+
 ## Internal Module Interactions
 
 ```

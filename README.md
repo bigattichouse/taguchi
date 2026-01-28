@@ -45,6 +45,7 @@ A robust, Unix-philosophy command-line tool for designing and analyzing experime
 *Note: L27 orthogonality verification in progress
 
 ### 🔄 Active Development
+- **Language Bindings**: Python and Node.js production-ready bindings
 - **Analysis**: Advanced statistical features, result processing
 
 ### 📋 Planned Modules
