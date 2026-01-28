@@ -32,11 +32,21 @@ A robust, Unix-philosophy command-line tool for designing and analyzing experime
 
 *Note: L27 orthogonality verification in progress
 
-### 🔄 Active Development
+### ✅ Complete Modules
+- **Infrastructure**: Memory management, error handling, utilities
+- **Arrays**: Predefined orthogonal arrays (L4, L8, L9, L16, L27*)
+- **Parser**: `.tgu` file parsing and validation
+- **Generator**: Mapping factor definitions to experiment runs
+- **Serializer**: JSON serialization for bindings
 - **Analyzer**: Statistical analysis and main effects calculation
+- **Public API**: Complete facade connecting all modules
+
+*Note: L27 orthogonality verification in progress
+
+### 🔄 Active Development
+- **CLI**: Command-line interface
 
 ### 📋 Planned Modules
-- **CLI**: Command-line interface
 - **Language Bindings**: Python, Node.js, etc.
 
 ## Quick Start
