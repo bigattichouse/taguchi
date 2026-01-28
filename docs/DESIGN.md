@@ -73,16 +73,17 @@
 
 #### 10. API Client Examples (Complete)
 - **Status**: ✅ Complete
-- **Files**: `examples/python/`, `examples/nodejs/`
+- **Files**: `examples/python/`, `examples/nodejs/`, `examples/DOCUMENTATION.md`
 - **Languages**: Python, Node.js
 - **Features**:
-  - Python ctypes interface to C library
-  - Node.js ffi-napi interface to C library
-  - Basic and advanced usage examples for each language
-  - Proper error handling and resource management
+  - Python ctypes interface to C library with basic and advanced examples
+  - Node.js ffi-napi interface to C library with basic and advanced examples
+  - Proper error handling and resource management in both languages
   - File-based and programmatic workflow examples
   - Async execution patterns for Node.js
-  - Complete usage demonstrations
+  - Complete usage demonstrations and comprehensive documentation
+  - Workflow classes for complex experiment management
+  - Batch processing capabilities for multiple experiments
 
 ## Internal Module Interactions
 

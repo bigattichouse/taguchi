@@ -101,19 +101,22 @@ taguchi/
 - **Commands**: `generate`, `run`, `validate`, `list-arrays`, `help`, `--version`
 - **Features**: Process execution, environment variables for factor values, external script execution
 
-### 10. Language Bindings Examples (Complete)
+### 11. API Client Examples (Complete)
 - **Status**: ✅ Complete
-- **Files**: `examples/python/`, `examples/nodejs/`
+- **Files**: `examples/python/`, `examples/nodejs/`, `examples/DOCUMENTATION.md`
+- **Languages**: Python, Node.js
 - **Features**:
-  - Python ctypes interface to C library
-  - Node.js ffi-napi interface to C library
-  - Basic and advanced usage examples for each language
-  - Proper error handling and resource management
-  - File-based and programmatic workflow examples
-  - Async execution patterns for Node.js
-  - Complete usage demonstrations
+  - Python ctypes interface to C library with basic and advanced examples
+  - Node.js ffi-napi interface to C library with basic and advanced examples
+  - Complete error handling and resource management demonstrations
+  - File-based and programmatic workflow examples in both languages
+  - Async execution patterns for Node.js with proper concurrency handling
+  - Comprehensive usage demonstrations with workflow classes
+  - Advanced batch processing for multiple experiment execution
+  - Proper memory management and cleanup patterns
+  - Cross-language API consistency in usage patterns
 
-### 11. Language Bindings (Future)
+### 12. Language Bindings (Future)
 - **Status**: 📋 Planned
 - **Files**: Production-quality binding implementations
 - **Goals**: Official Python, Node.js, Go, etc. packages
