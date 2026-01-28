@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "utils.h"
+#include "arrays.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -250,24 +251,24 @@ int parse_experiment_def_from_string(const char *content, ExperimentDef *def, ch
         return -1;
     }
 
-    if (strlen(def->array_type) == 0) {
-        set_error(error_buf, "No array type specified");
-        return -1;
-    }
-
-    // Validate array type format (should be like L4, L9, L16, L27)
-    if (def->array_type[0] != 'L' || strlen(def->array_type) < 2) {
-        set_error(error_buf, "Invalid array type format: %s (should be like L4, L9, etc.)", def->array_type);
-        return -1;
-    }
-
-    // Check that array type follows expected pattern
-    for (size_t i = 1; i < strlen(def->array_type); i++) {
-        if (!isdigit(def->array_type[i])) {
-            set_error(error_buf, "Invalid array type format: %s", def->array_type);
+    // Array type is now optional for auto-selection
+    // If specified, validate its format
+    if (strlen(def->array_type) > 0) {
+        // Validate array type format (should be like L4, L9, L16, L27)
+        if (def->array_type[0] != 'L' || strlen(def->array_type) < 2) {
+            set_error(error_buf, "Invalid array type format: %s (should be like L4, L9, etc.)", def->array_type);
             return -1;
         }
+
+        // Check that array type follows expected pattern
+        for (size_t i = 1; i < strlen(def->array_type); i++) {
+            if (!isdigit(def->array_type[i])) {
+                set_error(error_buf, "Invalid array type format: %s", def->array_type);
+                return -1;
+            }
+        }
     }
+    // If array_type is empty, that's okay for auto-selection
 
     return 0;
 }
@@ -310,14 +311,8 @@ bool validate_experiment_def(const ExperimentDef *def, char *error_buf) {
         }
     }
     
-    // Check that array type is not empty
-    if (strlen(def->array_type) == 0) {
-        if (error_buf) {
-            set_error(error_buf, "Array type not specified");
-        }
-        return false;
-    }
-    
+    // Array type is now optional for auto-selection
+    // If no array is specified, taguchi_suggest_optimal_array can be used
     return true;
 }
 

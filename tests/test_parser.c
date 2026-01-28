@@ -86,15 +86,17 @@ TEST(parse_invalid_no_factors) {
 TEST(parse_invalid_no_array) {
     ExperimentDef def;
     char error[TAGUCHI_ERROR_SIZE];
-    
-    const char *input = 
+
+    const char *input =
         "factors:\n"
         "  cache_size: 64M, 128M, 256M\n";
-    
+
     int result = parse_experiment_def_from_string(input, &def, error);
-    
-    ASSERT_EQ(result, -1);
-    // Should fail because no array specified
+
+    // Should now succeed as array specification is optional for auto-selection
+    ASSERT_EQ(result, 0);
+    ASSERT_GT(def.factor_count, 0);  // Should have factors
+    ASSERT_EQ(strlen(def.array_type), 0);  // Array type should be empty
 }
 
 TEST(validate_correct_definition) {
