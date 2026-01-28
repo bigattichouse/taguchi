@@ -60,10 +60,16 @@
   - `taguchi_add_result()`: Add individual result measurements
   - Result validation and cross-referencing with runs
 
-#### 9. CLI Module (Next Priority)
-- **Commands**: generate, run, analyze, validate, effects, list-arrays
-- **Output Formats**: csv, json, tsv, table
-- **Execution**: External command execution for experiments
+#### 9. CLI Module (Complete)
+- **Status**: ✅ Complete
+- **Files**: `src/cli/main.c`
+- **Commands**: `generate`, `run`, `validate`, `list-arrays`, `help`, `--version`
+- **Features**:
+  - Process execution for each experimental run using fork/wait
+  - Environment variable setting for factor values (`TAGUCHI_<factor_name>=<value>`)
+  - Run ID available as `TAGUCHI_RUN_ID` environment variable
+  - External command execution with proper argument passing
+  - Error handling and validation
 
 ## Internal Module Interactions
 

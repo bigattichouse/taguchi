@@ -40,11 +40,12 @@ A robust, Unix-philosophy command-line tool for designing and analyzing experime
 - **Serializer**: JSON serialization for bindings
 - **Analyzer**: Statistical analysis and main effects calculation
 - **Public API**: Complete facade connecting all modules
+- **CLI**: Command-line interface with run, generate, validate, list-arrays commands
 
 *Note: L27 orthogonality verification in progress
 
 ### 🔄 Active Development
-- **CLI**: Command-line interface
+- **Analysis**: Advanced statistical features, result processing
 
 ### 📋 Planned Modules
 - **Language Bindings**: Python, Node.js, etc.

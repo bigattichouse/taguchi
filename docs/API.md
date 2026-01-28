@@ -66,6 +66,23 @@ taguchi/
 - **Files**: `taguchi.c`
 - **Functions**: Connect public API to internal modules
 
+### 7. Additional API Functions (Enhanced)
+- **Status**: ✅ Complete
+- **Functions**: Added to support CLI functionality
+  - `taguchi_run_get_factor_count()` - Get number of factors in run
+  - `taguchi_run_get_factor_name_at_index()` - Get factor name by index
+  - Enhanced factor value access with proper enumeration
+
+### 8. CLI Module (Complete)
+- **Status**: ✅ Complete
+- **Files**: `src/cli/main.c`
+- **Commands**: `generate`, `run`, `validate`, `list-arrays`, `help`, `--version`
+- **Features**:
+  - Process execution for each experimental run
+  - Environment variable setting for factor values
+  - External script execution with proper arguments
+  - Error handling and validation
+
 ## Upcoming Modules
 
 ### 7. Analysis Module (Complete)
@@ -73,11 +90,18 @@ taguchi/
 - **Files**: `analyzer.c/h`
 - **Functions**: Calculate main effects, statistical analysis, result set management
 
-### 8. CLI Implementation (Future)
-- **Status**: 📋 Planned
-- **Files**: `main.c`, `commands.c/h`, `runner.c/h`, `output.c/h`
+### 8. Results Module (Integrated)
+- **Status**: ✅ Integrated into Analysis Module
+- **Files**: `analyzer.c/h`
+- **Functions**: `taguchi_create_result_set()`, `taguchi_add_result()`, Result validation and cross-referencing with runs
 
-### 9. Language Bindings (Future)
+### 9. CLI Implementation (Complete)
+- **Status**: ✅ Complete
+- **Files**: `src/cli/main.c`
+- **Commands**: `generate`, `run`, `validate`, `list-arrays`, `help`, `--version`
+- **Features**: Process execution, environment variables for factor values, external script execution
+
+### 10. Language Bindings (Future)
 - **Status**: 📋 Planned
 - **Files**: Various binding implementations
 
