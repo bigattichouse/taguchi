@@ -7,11 +7,20 @@
 libtaguchi.so
 libtaguchi.a
 
+# Object files
+*.o
+
 # Build artifacts
 build/
 
-# Test binaries
+# Binaries
+taguchi
+
+# Test files
+test_runner
 test_integration
+test_script.sh
+test_*.tgu
 
 # Debug and temporary files
 debug_*
@@ -28,3 +37,8 @@ final_l27*
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Log and backup files
+*.log
+*~
+#*
