@@ -1,12 +1,30 @@
+# Build directories
 /build/
+
+# Compiled libraries
 *.so
 *.a
+libtaguchi.so
+libtaguchi.a
+
+# Build artifacts
+build/
+
+# Test binaries
+test_integration
+
+# Debug and temporary files
 debug_*
 verify_*
 math_l27*
 final_l27*
-test_integration
-build/
-libtaguchi.so
-libtaguchi.a
-test_integration
+
+# IDE and editor files
+*.swp
+*~
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
