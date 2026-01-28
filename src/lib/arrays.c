@@ -1,5 +1,7 @@
 #include "arrays.h"
+#include "utils.h"  // for set_error function
 #include <string.h>
+#include <stdbool.h>
 
 /* Predefined arrays (const static data) */
 
@@ -114,4 +116,71 @@ const OrthogonalArray *get_array(const char *name) {
 
 const char **list_array_names(void) {
     return array_names;
+}
+
+/* Helper function to determine if an array can accommodate the factors */
+static bool can_accommodate_factors(const OrthogonalArray *array, const ExperimentDef *def) {
+    if (!array || !def) return false;
+
+    // Check if array supports enough factors
+    if (def->factor_count > array->cols) {
+        return false;
+    }
+
+    // Check if all factors have levels compatible with array
+    for (size_t i = 0; i < def->factor_count; i++) {
+        const Factor *factor = &def->factors[i];
+        if (factor->level_count > array->levels) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/* Get all array structures for internal use */
+const OrthogonalArray *get_all_arrays(size_t *count_out) {
+    if (count_out) {
+        *count_out = sizeof(all_arrays) / sizeof(all_arrays[0]);
+    }
+    return all_arrays;
+}
+
+/* Function to automatically suggest the most appropriate orthogonal array */
+const char *suggest_optimal_array(const ExperimentDef *def, char *error_buf) {
+    if (!def) {
+        if (error_buf) {
+            strcpy(error_buf, "Invalid definition for array suggestion");
+        }
+        return NULL;
+    }
+
+    // Find maximum number of levels required among all factors
+    size_t max_levels = 0;
+    for (size_t i = 0; i < def->factor_count; i++) {
+        if (def->factors[i].level_count > max_levels) {
+            max_levels = def->factors[i].level_count;
+        }
+    }
+
+    // Find the smallest array that can accommodate all factors
+    for (size_t i = 0; i < sizeof(all_arrays) / sizeof(all_arrays[0]); i++) {
+        const OrthogonalArray *array = &all_arrays[i];
+
+        // Check if this array can accommodate the factors
+        if (can_accommodate_factors(array, def)) {
+            // Also check that the array supports the required number of levels
+            if (array->levels >= max_levels) {
+                return array->name;
+            }
+        }
+    }
+
+    // If no array fits, return NULL with error message
+    if (error_buf) {
+        set_error(error_buf, "No suitable array found for %zu factors (max %zu levels each). "
+                "Try reducing factor count or level count per factor.",
+                def->factor_count, max_levels);
+    }
+    return NULL;
 }

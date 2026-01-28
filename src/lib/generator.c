@@ -5,6 +5,40 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Helper function to find the best array for the given factors */
+static const OrthogonalArray *get_suggested_array_for_factors(const ExperimentDef *def, char *error_buf) {
+    // Find the best array using the same logic as suggest_optimal_array
+    size_t max_levels = 0;
+    size_t factor_count = def->factor_count;
+
+    // Find maximum number of levels required among all factors
+    for (size_t i = 0; i < def->factor_count; i++) {
+        if (def->factors[i].level_count > max_levels) {
+            max_levels = def->factors[i].level_count;
+        }
+    }
+
+    // Find the smallest array that can accommodate all factors
+    size_t array_count;
+    const OrthogonalArray *all_arrays = get_all_arrays(&array_count);
+
+    for (size_t i = 0; i < array_count; i++) {
+        const OrthogonalArray *array = &all_arrays[i];
+
+        // Check if this array can accommodate the factors
+        if (array->cols >= factor_count && array->levels >= max_levels) {
+            return array;
+        }
+    }
+
+    // If no array fits, return NULL with error message
+    if (error_buf) {
+        set_error(error_buf, "No suitable array found for %zu factors with max %zu levels each",
+                 factor_count, max_levels);
+    }
+    return NULL;
+}
+
 /* Check if factors fit in specified array */
 bool check_array_compatibility(const ExperimentDef *def, const OrthogonalArray *array, char *error_buf) {
     if (!def || !array) {
@@ -48,12 +82,28 @@ int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, siz
     }
     
     // Find the corresponding array
-    const OrthogonalArray *array = get_array(def->array_type);
-    if (!array) {
-        if (error_buf) {
-            set_error(error_buf, "Unknown array type: %s", def->array_type);
+    const OrthogonalArray *array = NULL;
+
+    // If array type is not specified, try to auto-select an appropriate array
+    if (strlen(def->array_type) == 0) {
+        // Try to find an appropriate array automatically
+        array = get_suggested_array_for_factors(def, error_buf);
+        if (!array) {
+            if (error_buf) {
+                set_error(error_buf, "No suitable array found for %zu factors. "
+                         "Either specify an array or reduce factor/level count.", def->factor_count);
+            }
+            return -1;
         }
-        return -1;
+    } else {
+        // Use the specified array
+        array = get_array(def->array_type);
+        if (!array) {
+            if (error_buf) {
+                set_error(error_buf, "Unknown array type: %s", def->array_type);
+            }
+            return -1;
+        }
     }
     
     // Check compatibility

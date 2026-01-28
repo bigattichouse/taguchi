@@ -99,6 +99,21 @@ void taguchi_free_definition(taguchi_experiment_def_t *def);
 const char **taguchi_list_arrays(void);
 
 /**
+ * Suggest optimal array for experiment definition.
+ *
+ * Automatically selects the most appropriate orthogonal array based on
+ * factor count and level requirements.
+ *
+ * @param def Experiment definition
+ * @param error_buf Buffer for error message (size TAGUCHI_ERROR_SIZE)
+ * @return Recommended array name (do not free), or NULL on error
+ */
+const char *taguchi_suggest_optimal_array(
+    const taguchi_experiment_def_t *def,
+    char *error_buf
+);
+
+/**
  * Get array information.
  *
  * @param name Array name (e.g., "L9")

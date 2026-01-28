@@ -129,6 +129,18 @@ const char **taguchi_list_arrays(void) {
     return list_array_names();
 }
 
+const char *taguchi_suggest_optimal_array(const taguchi_experiment_def_t *def, char *error_buf) {
+    if (!def) {
+        if (error_buf) {
+            strcpy(error_buf, "Invalid definition parameter to taguchi_suggest_optimal_array");
+        }
+        return NULL;
+    }
+
+    // Call internal function
+    return suggest_optimal_array(&def->internal_def, error_buf);
+}
+
 int taguchi_get_array_info(const char *name, size_t *rows_out, size_t *cols_out, size_t *levels_out) {
     if (!name || !rows_out || !cols_out || !levels_out) {
         return -1;
