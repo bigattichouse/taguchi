@@ -28,7 +28,9 @@ TEST(list_arrays_valid) {
     ASSERT_STR_EQ(names[2], "L9");
     ASSERT_STR_EQ(names[3], "L16");
     ASSERT_STR_EQ(names[4], "L27");
-    ASSERT_NULL(names[5]);
+    ASSERT_STR_EQ(names[5], "L81");
+    ASSERT_STR_EQ(names[6], "L243");
+    ASSERT_NULL(names[7]);
 }
 
 // Helper function to check the balance property of an orthogonal array
@@ -103,4 +105,68 @@ TEST(l16_is_orthogonal) {
 TEST(l27_is_orthogonal) {
     const OrthogonalArray *array = get_array("L27");
     check_orthogonality(array);
+}
+
+TEST(get_array_l81) {
+    const OrthogonalArray *array = get_array("L81");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L81");
+    ASSERT_EQ(array->rows, 81);
+    ASSERT_EQ(array->cols, 40);
+    ASSERT_EQ(array->levels, 3);
+}
+
+TEST(l81_values_in_range) {
+    const OrthogonalArray *array = get_array("L81");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        for (size_t c = 0; c < array->cols; c++) {
+            int val = array->data[r * array->cols + c];
+            ASSERT(val >= 0 && val < 3);
+        }
+    }
+}
+
+TEST(l81_is_orthogonal) {
+    const OrthogonalArray *array = get_array("L81");
+    check_orthogonality(array);
+}
+
+TEST(get_array_l243) {
+    const OrthogonalArray *array = get_array("L243");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L243");
+    ASSERT_EQ(array->rows, 243);
+    ASSERT_EQ(array->cols, 121);
+    ASSERT_EQ(array->levels, 3);
+}
+
+TEST(l243_values_in_range) {
+    const OrthogonalArray *array = get_array("L243");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        for (size_t c = 0; c < array->cols; c++) {
+            int val = array->data[r * array->cols + c];
+            ASSERT(val >= 0 && val < 3);
+        }
+    }
+}
+
+TEST(l243_is_orthogonal) {
+    const OrthogonalArray *array = get_array("L243");
+    check_orthogonality(array);
+}
+
+TEST(columns_needed_basic) {
+    /* 3-level base: 1-3 levels need 1 col, 4-9 need 2, 10-27 need 3 */
+    ASSERT_EQ(columns_needed_for_factor(2, 3), 1);
+    ASSERT_EQ(columns_needed_for_factor(3, 3), 1);
+    ASSERT_EQ(columns_needed_for_factor(4, 3), 2);
+    ASSERT_EQ(columns_needed_for_factor(9, 3), 2);
+    ASSERT_EQ(columns_needed_for_factor(10, 3), 3);
+    ASSERT_EQ(columns_needed_for_factor(27, 3), 3);
+    /* 2-level base */
+    ASSERT_EQ(columns_needed_for_factor(2, 2), 1);
+    ASSERT_EQ(columns_needed_for_factor(3, 2), 2);
+    ASSERT_EQ(columns_needed_for_factor(4, 2), 2);
 }

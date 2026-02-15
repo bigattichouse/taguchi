@@ -15,7 +15,14 @@ extern void test_l4_is_orthogonal(void);
 extern void test_l8_is_orthogonal(void);
 extern void test_l9_is_orthogonal(void);
 extern void test_l16_is_orthogonal(void);
-// extern void test_l27_is_orthogonal(void);  // Temporarily disabled due to L27 array construction issue
+/* extern void test_l27_is_orthogonal(void); */
+extern void test_get_array_l81(void);
+extern void test_l81_values_in_range(void);
+extern void test_l81_is_orthogonal(void);
+extern void test_get_array_l243(void);
+extern void test_l243_values_in_range(void);
+extern void test_l243_is_orthogonal(void);
+extern void test_columns_needed_basic(void);
 
 /* Declare test functions from test_parser.c */
 extern void test_parse_simple_factor_definition(void);
@@ -34,7 +41,29 @@ extern void test_suggest_optimal_array_too_many_factors(void);
 extern void test_suggest_optimal_array_with_3level_limit(void);
 extern void test_suggest_optimal_array_single_factor(void);
 extern void test_suggest_optimal_array_null_input(void);
+extern void test_column_pairing_9level_factor(void);
+extern void test_mixed_level_2_in_3level_array(void);
+extern void test_peltier_style_experiment(void);
+extern void test_auto_select_with_9level_factor(void);
 extern void test_auto_select_vs_manual_specification(void);
+
+/* Declare test functions from test_generation.c */
+extern void test_generate_l27_regression(void);
+extern void test_column_pairing_4level_factor(void);
+extern void test_column_pairing_5level_factor(void);
+extern void test_column_pairing_7level_factor(void);
+extern void test_triple_pairing_10level_factor(void);
+extern void test_triple_pairing_27level_factor(void);
+extern void test_two_9level_factors_paired(void);
+extern void test_generate_with_l243(void);
+extern void test_mixed_level_balance_counts(void);
+extern void test_error_array_too_small_for_paired_columns(void);
+extern void test_error_exceeds_all_arrays(void);
+extern void test_exact_column_fill_l9(void);
+extern void test_repeated_l81_generation_consistent(void);
+extern void test_nine_level_balance_in_l81(void);
+extern void test_auto_select_prefers_smallest(void);
+extern void test_auto_select_l27_for_5_3level_factors(void);
 
 
 int main(void) {
@@ -55,7 +84,14 @@ int main(void) {
     RUN_TEST(l8_is_orthogonal);
     RUN_TEST(l9_is_orthogonal);
     RUN_TEST(l16_is_orthogonal);
-    // RUN_TEST(l27_is_orthogonal);  // Temporarily disabled - requires mathematical construction
+    /* RUN_TEST(l27_is_orthogonal); */
+    RUN_TEST(get_array_l81);
+    RUN_TEST(l81_values_in_range);
+    RUN_TEST(l81_is_orthogonal);
+    RUN_TEST(get_array_l243);
+    RUN_TEST(l243_values_in_range);
+    RUN_TEST(l243_is_orthogonal);
+    RUN_TEST(columns_needed_basic);
 
     printf("\\nParser Tests:\\n");
     RUN_TEST(parse_simple_factor_definition);
@@ -74,7 +110,29 @@ int main(void) {
     RUN_TEST(suggest_optimal_array_with_3level_limit);
     RUN_TEST(suggest_optimal_array_single_factor);
     RUN_TEST(suggest_optimal_array_null_input);
+    RUN_TEST(column_pairing_9level_factor);
+    RUN_TEST(mixed_level_2_in_3level_array);
+    RUN_TEST(peltier_style_experiment);
+    RUN_TEST(auto_select_with_9level_factor);
     RUN_TEST(auto_select_vs_manual_specification);
+
+    printf("\\nGeneration & Column Pairing Tests:\\n");
+    RUN_TEST(generate_l27_regression);
+    RUN_TEST(column_pairing_4level_factor);
+    RUN_TEST(column_pairing_5level_factor);
+    RUN_TEST(column_pairing_7level_factor);
+    RUN_TEST(triple_pairing_10level_factor);
+    RUN_TEST(triple_pairing_27level_factor);
+    RUN_TEST(two_9level_factors_paired);
+    RUN_TEST(generate_with_l243);
+    RUN_TEST(mixed_level_balance_counts);
+    RUN_TEST(error_array_too_small_for_paired_columns);
+    RUN_TEST(error_exceeds_all_arrays);
+    RUN_TEST(exact_column_fill_l9);
+    RUN_TEST(repeated_l81_generation_consistent);
+    RUN_TEST(nine_level_balance_in_l81);
+    RUN_TEST(auto_select_prefers_smallest);
+    RUN_TEST(auto_select_l27_for_5_3level_factors);
 
     printf("\\n=== All Tests Passed ===\\n");
     return 0;

@@ -49,12 +49,18 @@ static int cmd_version(int argc, char *argv[]) {
 }
 
 static int cmd_list_arrays(int argc, char *argv[]) {
-    (void)argc; // Suppress unused parameter warning
-    (void)argv; // Suppress unused parameter warning
+    (void)argc;
+    (void)argv;
     const char **arrays = taguchi_list_arrays();
     printf("Available orthogonal arrays:\n");
     for (int i = 0; arrays[i] != NULL; i++) {
-        printf("  %s\n", arrays[i]);
+        size_t rows, cols, levels;
+        if (taguchi_get_array_info(arrays[i], &rows, &cols, &levels) == 0) {
+            printf("  %-5s (%3zu runs, %3zu cols, %zu levels)\n",
+                   arrays[i], rows, cols, levels);
+        } else {
+            printf("  %s\n", arrays[i]);
+        }
     }
     return 0;
 }

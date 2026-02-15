@@ -7,39 +7,25 @@
 
 /* Helper function to find the best array for the given factors */
 static const OrthogonalArray *get_suggested_array_for_factors(const ExperimentDef *def, char *error_buf) {
-    // Find the best array using the same logic as suggest_optimal_array
-    size_t max_levels = 0;
-    size_t factor_count = def->factor_count;
-
-    // Find maximum number of levels required among all factors
-    for (size_t i = 0; i < def->factor_count; i++) {
-        if (def->factors[i].level_count > max_levels) {
-            max_levels = def->factors[i].level_count;
-        }
-    }
-
-    // Find the smallest array that can accommodate all factors
     size_t array_count;
     const OrthogonalArray *all_arrays = get_all_arrays(&array_count);
 
     for (size_t i = 0; i < array_count; i++) {
         const OrthogonalArray *array = &all_arrays[i];
-
-        // Check if this array can accommodate the factors
-        if (array->cols >= factor_count && array->levels >= max_levels) {
+        size_t needed = total_columns_needed(def, array->levels);
+        if (needed <= array->cols) {
             return array;
         }
     }
 
-    // If no array fits, return NULL with error message
     if (error_buf) {
-        set_error(error_buf, "No suitable array found for %zu factors with max %zu levels each",
-                 factor_count, max_levels);
+        set_error(error_buf, "No suitable array found for %zu factors",
+                 def->factor_count);
     }
     return NULL;
 }
 
-/* Check if factors fit in specified array */
+/* Check if factors fit in specified array (with column pairing support) */
 bool check_array_compatibility(const ExperimentDef *def, const OrthogonalArray *array, char *error_buf) {
     if (!def || !array) {
         if (error_buf) {
@@ -47,32 +33,22 @@ bool check_array_compatibility(const ExperimentDef *def, const OrthogonalArray *
         }
         return false;
     }
-    
-    // Check if array supports enough factors
-    if (def->factor_count > array->cols) {
+
+    /* Check total columns needed (with column pairing) against available columns */
+    size_t needed = total_columns_needed(def, array->levels);
+    if (needed > array->cols) {
         if (error_buf) {
-            set_error(error_buf, "Array %s supports max %zu factors, but %zu were provided", 
-                     array->name, array->cols, def->factor_count);
+            set_error(error_buf, "Array %s has %zu columns, but %zu columns needed "
+                     "(factors require column pairing for multi-level support)",
+                     array->name, array->cols, needed);
         }
         return false;
     }
-    
-    // Check if all factors have levels compatible with array
-    for (size_t i = 0; i < def->factor_count; i++) {
-        const Factor *factor = &def->factors[i];
-        if (factor->level_count > array->levels) {
-            if (error_buf) {
-                set_error(error_buf, "Factor '%s' has %zu levels, but array '%s' only supports %zu levels", 
-                         factor->name, factor->level_count, array->name, array->levels);
-            }
-            return false;
-        }
-    }
-    
+
     return true;
 }
 
-/* Generate experiments from definition */
+/* Generate experiments from definition (with column pairing and mixed-level support) */
 int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, size_t *count_out, char *error_buf) {
     if (!def || !runs_out || !count_out) {
         if (error_buf) {
@@ -80,13 +56,11 @@ int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, siz
         }
         return -1;
     }
-    
-    // Find the corresponding array
+
+    /* Find the corresponding array */
     const OrthogonalArray *array = NULL;
 
-    // If array type is not specified, try to auto-select an appropriate array
     if (strlen(def->array_type) == 0) {
-        // Try to find an appropriate array automatically
         array = get_suggested_array_for_factors(def, error_buf);
         if (!array) {
             if (error_buf) {
@@ -96,7 +70,6 @@ int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, siz
             return -1;
         }
     } else {
-        // Use the specified array
         array = get_array(def->array_type);
         if (!array) {
             if (error_buf) {
@@ -105,46 +78,77 @@ int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, siz
             return -1;
         }
     }
-    
-    // Check compatibility
+
+    /* Check compatibility */
     if (!check_array_compatibility(def, array, error_buf)) {
         return -1;
     }
-    
-    // Allocate runs array based on array rows
+
+    /*
+     * Build column assignment map: for each factor, record which OA columns
+     * it uses and how many.
+     */
+    size_t col_start[MAX_FACTORS];  /* first OA column for each factor */
+    size_t col_count[MAX_FACTORS];  /* number of OA columns for each factor */
+    size_t next_col = 0;
+
+    for (size_t i = 0; i < def->factor_count; i++) {
+        col_count[i] = columns_needed_for_factor(def->factors[i].level_count, array->levels);
+        col_start[i] = next_col;
+        next_col += col_count[i];
+    }
+
+    /* Allocate runs array */
     ExperimentRun *runs = xcalloc(array->rows, sizeof(ExperimentRun));
-    
-    // Generate each run
+
+    /* Generate each run */
     for (size_t run_idx = 0; run_idx < array->rows; run_idx++) {
         ExperimentRun *run = &runs[run_idx];
-        run->run_id = run_idx + 1;  // 1-indexed
+        run->run_id = run_idx + 1;
         run->factor_count = def->factor_count;
-        
-        // Copy factor names for this run
+
+        /* Copy factor names */
         for (size_t factor_idx = 0; factor_idx < def->factor_count; factor_idx++) {
             strcpy(run->factor_names[factor_idx], def->factors[factor_idx].name);
         }
-        
-        // Map array values to factor levels for this run
+
+        /* Map array values to factor levels (with column pairing) */
         for (size_t factor_idx = 0; factor_idx < def->factor_count; factor_idx++) {
-            // Get the level index from the orthogonal array
-            int level_index = array->data[run_idx * array->cols + factor_idx];
-            
-            // Map this index to the actual factor value
-            if (level_index >= 0 && (size_t)level_index < def->factors[factor_idx].level_count) {
-                strcpy(run->values[factor_idx], def->factors[factor_idx].values[level_index]);
+            const Factor *factor = &def->factors[factor_idx];
+            int level_index = 0;
+
+            if (col_count[factor_idx] == 1) {
+                /* Single column: direct mapping */
+                level_index = array->data[run_idx * array->cols + col_start[factor_idx]];
             } else {
-                // This shouldn't happen if array compatibility was checked
-                if (error_buf) {
-                    set_error(error_buf, "Invalid level index %d at run %zu, factor %zu", 
-                             level_index, run_idx, factor_idx);
+                /* Multiple columns (column pairing): combine values */
+                /* level_index = col_a * base^(n-1) + col_b * base^(n-2) + ... */
+                size_t base = array->levels;
+                level_index = 0;
+                for (size_t c = 0; c < col_count[factor_idx]; c++) {
+                    int col_val = array->data[run_idx * array->cols + col_start[factor_idx] + c];
+                    /* Multiply by base^(remaining positions) */
+                    size_t multiplier = 1;
+                    for (size_t p = c + 1; p < col_count[factor_idx]; p++) {
+                        multiplier *= base;
+                    }
+                    level_index += col_val * (int)multiplier;
                 }
-                free_experiments(runs, array->rows);
-                return -1;
             }
+
+            /*
+             * Mixed-level support: if the computed index exceeds the factor's
+             * level count, wrap using modulo. This handles cases like:
+             * - 2-level factor in 3-level array (index 0,1,2 -> level 0,1,0)
+             * - 5-level factor using 2 paired columns (index 0-8 -> level 0-4,0-3)
+             */
+            if (level_index < 0) level_index = 0;
+            level_index = level_index % (int)factor->level_count;
+
+            strcpy(run->values[factor_idx], factor->values[level_index]);
         }
     }
-    
+
     *runs_out = runs;
     *count_out = array->rows;
     return 0;
@@ -153,9 +157,7 @@ int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, siz
 /* Free generated runs */
 void free_experiments(ExperimentRun *runs, size_t count) {
     if (runs) {
-        // Free each individual run's data (in this case, no dynamic allocation needed)
-        // The data is stored in fixed-size arrays within the structure
-        (void)count; // Suppress unused parameter warning
+        (void)count;
         free(runs);
     }
 }

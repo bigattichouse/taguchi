@@ -27,4 +27,10 @@ const char *suggest_optimal_array(const ExperimentDef *def, char *error_buf);
 /* List all array structures (for internal use) */
 const OrthogonalArray *get_all_arrays(size_t *count_out);
 
+/* Calculate how many OA columns a factor needs (column pairing) */
+size_t columns_needed_for_factor(size_t level_count, size_t base_levels);
+
+/* Calculate total OA columns needed for all factors */
+size_t total_columns_needed(const ExperimentDef *def, size_t base_levels);
+
 #endif /* ARRAYS_H */
