@@ -34,7 +34,11 @@ This design ensures that each factor's levels are evenly distributed and balance
 
 ## Features
 
-- **Orthogonal Array Support**: L4, L8, L9, L16, L27
+- **Orthogonal Array Support**: L4, L8, L9, L16, L27, L81, L243 (algorithmically generated via GF(3))
+- **Column Pairing**: Multi-level factors (4-27 levels) via automatic column pairing/tripling
+- **Mixed-Level Support**: Factors with different level counts in the same experiment
+- **Auto Array Selection**: Automatically picks the smallest suitable array when not specified
+- **Main Effects Analysis**: Calculate factor significance, level means, and optimal configurations
 - **YAML-like Configuration**: Human-readable `.tgu` experiment definition files
 - **JSON Serialization**: Output for language bindings and external tools
 - **Memory Safe**: No leaks, bounds checking, safe string handling
@@ -56,21 +60,16 @@ The Taguchi Array Tool has been successfully implemented as per the original spe
 
 ### ✅ **Core Modules Delivered**
 - **Infrastructure**: Memory management, error handling, utilities
-- **Arrays**: All orthogonal arrays (L4, L8, L9, L16, L27) with verified orthogonality
+- **Arrays**: All orthogonal arrays (L4, L8, L9, L16, L27, L81, L243) with verified orthogonality
 - **Parser**: `.tgu` file parsing and validation
 - **Generator**: Mapping factor definitions to experiment runs  
 - **Serializer**: JSON serialization for language bindings
 - **Analyzer**: Statistical analysis and main effects calculation
 - **Public API**: Complete facade connecting all modules
-- **CLI**: Command-line interface with run, generate, validate, list-arrays commands
+- **CLI**: Command-line interface with generate, run, analyze, effects, validate, list-arrays commands
 
 ### 🔄 **Active Development**
 - **Language Bindings**: Python and Node.js examples implemented
-- **Analysis**: Advanced statistical features in development
-
-### 📋 **Planned Modules**
-- **Advanced Analysis**: ANOVA, confidence intervals, prediction models
-- **Additional Bindings**: Go, Rust, etc.
 
 ## Quick Start
 
@@ -102,6 +101,33 @@ array: L9
 
 # List available orthogonal arrays
 ./taguchi list-arrays
+
+# Analyze results (CSV with run_id,response columns)
+./taguchi analyze experiment.tgu results.csv --metric throughput
+
+# Calculate main effects only
+./taguchi effects experiment.tgu results.csv --metric throughput
+
+# Minimize a metric (e.g., latency)
+./taguchi analyze experiment.tgu results.csv --metric latency --minimize
+```
+
+### Column Pairing for Multi-Level Factors
+
+Factors with more levels than the array's base level count are automatically handled
+via column pairing. For example, a 9-level factor in a 3-level array (L81) uses 2
+columns paired together (3^2 = 9 combinations):
+
+```bash
+# experiment.tgu with mixed levels
+factors:
+  n_stages: 1, 2, 3, 4, 5, 6, 7, 8, 9
+  mode: pumped, static
+  temp: low, medium, high
+array: L81
+
+# Generates 81 runs - the 9-level factor uses column pairing automatically
+./taguchi generate experiment.tgu
 ```
 
 ### C Library Integration Example
@@ -188,10 +214,13 @@ factors:
   threads: 2, 4, 8
   timeout: 30, 60, 120
   algorithm: algo1, algo2, algo3
-array: L9  # For 4 factors with 3 levels each
+array: L9  # Optional - auto-selected if omitted
 ```
 
-This defines an experiment with 4 factors at 3 levels each, using the L9 orthogonal array to generate only 9 experimental runs instead of the full factorial 3^4 = 81 runs.
+The `array:` line is optional. If omitted, the tool automatically selects the smallest
+orthogonal array that can accommodate all factors. Factors can have different numbers of
+levels (mixed-level designs), and factors with more levels than the array's base use
+column pairing automatically.
 
 ## API Overview
 
@@ -204,8 +233,10 @@ This defines an experiment with 4 factors at 3 levels each, using the L9 orthogo
 ### CLI Commands
 - `generate <file.tgu>`: Generate experiment runs from definition
 - `run <file.tgu> <script>`: Execute external script for each run
+- `analyze <file.tgu> <results.csv>`: Full analysis with optimal configuration recommendation
+- `effects <file.tgu> <results.csv>`: Calculate and display main effects table
 - `validate <file.tgu>`: Validate experiment definition
-- `list-arrays`: List available orthogonal arrays
+- `list-arrays`: List available orthogonal arrays with details (rows, columns, levels)
 - `--help`, `--version`: Standard utilities
 
 ## Architecture

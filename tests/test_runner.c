@@ -15,7 +15,7 @@ extern void test_l4_is_orthogonal(void);
 extern void test_l8_is_orthogonal(void);
 extern void test_l9_is_orthogonal(void);
 extern void test_l16_is_orthogonal(void);
-/* extern void test_l27_is_orthogonal(void); */
+extern void test_l27_is_orthogonal(void);
 extern void test_get_array_l81(void);
 extern void test_l81_values_in_range(void);
 extern void test_l81_is_orthogonal(void);
@@ -46,6 +46,18 @@ extern void test_mixed_level_2_in_3level_array(void);
 extern void test_peltier_style_experiment(void);
 extern void test_auto_select_with_9level_factor(void);
 extern void test_auto_select_vs_manual_specification(void);
+
+/* Declare test functions from test_analyzer.c */
+extern void test_analyzer_create_result_set(void);
+extern void test_analyzer_create_null_inputs(void);
+extern void test_analyzer_add_result_null(void);
+extern void test_analyzer_result_set_grows(void);
+extern void test_analyzer_main_effects_l9(void);
+extern void test_analyzer_main_effects_null(void);
+extern void test_analyzer_recommend_higher_is_better(void);
+extern void test_analyzer_recommend_lower_is_better(void);
+extern void test_analyzer_main_effects_l27(void);
+extern void test_analyzer_main_effects_paired(void);
 
 /* Declare test functions from test_generation.c */
 extern void test_generate_l27_regression(void);
@@ -84,7 +96,7 @@ int main(void) {
     RUN_TEST(l8_is_orthogonal);
     RUN_TEST(l9_is_orthogonal);
     RUN_TEST(l16_is_orthogonal);
-    /* RUN_TEST(l27_is_orthogonal); */
+    RUN_TEST(l27_is_orthogonal);
     RUN_TEST(get_array_l81);
     RUN_TEST(l81_values_in_range);
     RUN_TEST(l81_is_orthogonal);
@@ -115,6 +127,18 @@ int main(void) {
     RUN_TEST(peltier_style_experiment);
     RUN_TEST(auto_select_with_9level_factor);
     RUN_TEST(auto_select_vs_manual_specification);
+
+    printf("\\nAnalyzer Tests:\\n");
+    RUN_TEST(analyzer_create_result_set);
+    RUN_TEST(analyzer_create_null_inputs);
+    RUN_TEST(analyzer_add_result_null);
+    RUN_TEST(analyzer_result_set_grows);
+    RUN_TEST(analyzer_main_effects_l9);
+    RUN_TEST(analyzer_main_effects_null);
+    RUN_TEST(analyzer_recommend_higher_is_better);
+    RUN_TEST(analyzer_recommend_lower_is_better);
+    RUN_TEST(analyzer_main_effects_l27);
+    RUN_TEST(analyzer_main_effects_paired);
 
     printf("\\nGeneration & Column Pairing Tests:\\n");
     RUN_TEST(generate_l27_regression);

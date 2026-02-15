@@ -56,35 +56,7 @@ static const int L16_data[] = {
     1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
 };
 
-static const int L27_data[] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0,
-    0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0,
-    1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1,
-    2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2,
-    2, 1, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 2,
-    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    0, 0, 0, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2,
-    0, 1, 2, 2, 0, 1, 1, 2, 0, 2, 0, 1, 0,
-    0, 2, 1, 1, 2, 0, 0, 1, 2, 0, 1, 2, 1,
-    1, 0, 2, 0, 1, 2, 2, 0, 1, 0, 2, 1, 2,
-    1, 1, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 0,
-    1, 2, 0, 1, 0, 2, 1, 2, 0, 1, 0, 2, 1,
-    2, 0, 1, 2, 1, 0, 0, 2, 1, 2, 1, 0, 2,
-    2, 1, 0, 0, 2, 1, 2, 1, 0, 0, 2, 1, 1,
-    2, 2, 2, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0,
-    0, 0, 0, 2, 2, 2, 1, 1, 1, 2, 2, 2, 0,
-    0, 1, 2, 1, 2, 0, 0, 2, 1, 2, 1, 0, 1,
-    0, 2, 1, 0, 1, 2, 1, 0, 2, 1, 2, 0, 2,
-    1, 0, 2, 2, 0, 1, 2, 1, 0, 0, 2, 1, 0,
-    1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 2,
-    1, 2, 0, 1, 0, 2, 0, 0, 2, 1, 0, 2, 0,
-    2, 0, 1, 2, 1, 0, 1, 2, 0, 2, 0, 1, 2,
-    2, 1, 0, 0, 2, 1, 0, 1, 2, 2, 1, 0, 1,
-    2, 2, 2, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1
-};
+/* L27 is generated algorithmically (GF(3)^3) for guaranteed orthogonality */
 
 /*
  * GF(3) orthogonal array generator for L(3^n) arrays.
@@ -197,23 +169,24 @@ static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
 }
 
 /* Generated array data (initialized lazily) */
+static int *L27_data_gen = NULL;
 static int *L81_data = NULL;
 static int *L243_data = NULL;
+static size_t L27_rows = 0, L27_cols = 0;
 static size_t L81_rows = 0, L81_cols = 0;
 static size_t L243_rows = 0, L243_cols = 0;
 
-/* Static array entries for predefined arrays */
-#define NUM_STATIC_ARRAYS 5
+/* Static array entries for predefined 2-level arrays */
+#define NUM_STATIC_ARRAYS 4
 static const OrthogonalArray static_arrays[] = {
     { "L4", 4, 3, 2, L4_data },
     { "L8", 8, 7, 2, L8_data },
     { "L9", 9, 4, 3, L9_data },
-    { "L16", 16, 15, 2, L16_data },
-    { "L27", 27, 13, 3, L27_data }
+    { "L16", 16, 15, 2, L16_data }
 };
 
 /* Full array list including generated arrays */
-#define MAX_ARRAYS 7
+#define MAX_ARRAYS 8
 static OrthogonalArray all_arrays[MAX_ARRAYS];
 static size_t all_arrays_count = 0;
 static bool arrays_initialized = false;
@@ -229,6 +202,15 @@ static void ensure_arrays_initialized(void) {
         all_arrays[i] = static_arrays[i];
     }
     all_arrays_count = NUM_STATIC_ARRAYS;
+
+    /* Generate L27 (replaces buggy hardcoded data) */
+    L27_data_gen = generate_power3_oa(3, &L27_rows, &L27_cols);
+    all_arrays[all_arrays_count].name = "L27";
+    all_arrays[all_arrays_count].rows = L27_rows;
+    all_arrays[all_arrays_count].cols = L27_cols;
+    all_arrays[all_arrays_count].levels = 3;
+    all_arrays[all_arrays_count].data = L27_data_gen;
+    all_arrays_count++;
 
     /* Generate L81 */
     L81_data = generate_power3_oa(4, &L81_rows, &L81_cols);

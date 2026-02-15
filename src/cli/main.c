@@ -296,6 +296,264 @@ static int cmd_run(int argc, char *argv[]) {
     return 0;
 }
 
+/* Helper: read a file into a stack buffer */
+static int read_file_content(const char *filename, char *buf, size_t buf_size) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Error opening file");
+        return -1;
+    }
+    size_t bytes_read = fread(buf, 1, buf_size - 1, file);
+    fclose(file);
+    if (bytes_read >= buf_size - 1) {
+        fprintf(stderr, "Error: file too large\n");
+        return -1;
+    }
+    buf[bytes_read] = '\0';
+    return 0;
+}
+
+/*
+ * Parse a CSV results file. Expected format:
+ *   run_id,response_value
+ *   1,42.5
+ *   2,38.1
+ *   ...
+ *
+ * Lines starting with '#' are treated as comments. The header line is skipped.
+ */
+static int parse_csv_results(const char *filename, taguchi_result_set_t *results, char *error_buf) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Cannot open results file: %s", filename);
+        return -1;
+    }
+
+    char line[1024];
+    int line_num = 0;
+    int data_lines = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        line_num++;
+        /* Trim trailing newline */
+        size_t len = strlen(line);
+        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
+            line[--len] = '\0';
+        }
+
+        /* Skip empty lines and comments */
+        if (len == 0 || line[0] == '#') continue;
+
+        /* Skip header line */
+        if (line_num == 1 && (strstr(line, "run_id") || strstr(line, "run"))) continue;
+
+        /* Parse run_id,response */
+        char *comma = strchr(line, ',');
+        if (!comma) {
+            snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Invalid CSV format at line %d", line_num);
+            fclose(file);
+            return -1;
+        }
+
+        *comma = '\0';
+        char *endptr;
+        long run_id = strtol(line, &endptr, 10);
+        if (*endptr != '\0' || run_id < 1) {
+            snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Invalid run_id at line %d", line_num);
+            fclose(file);
+            return -1;
+        }
+
+        double response = strtod(comma + 1, &endptr);
+        if (*endptr != '\0' && *endptr != '\n' && *endptr != '\r') {
+            snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Invalid response value at line %d", line_num);
+            fclose(file);
+            return -1;
+        }
+
+        if (taguchi_add_result(results, (size_t)run_id, response, error_buf) != 0) {
+            fclose(file);
+            return -1;
+        }
+        data_lines++;
+    }
+
+    fclose(file);
+
+    if (data_lines == 0) {
+        snprintf(error_buf, TAGUCHI_ERROR_SIZE, "No data rows found in %s", filename);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int cmd_effects(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Error: effects command requires .tgu file and results CSV\n");
+        fprintf(stderr, "Usage: effects <file.tgu> <results.csv> [--metric name]\n");
+        return 1;
+    }
+
+    const char *tgu_file = argv[1];
+    const char *csv_file = argv[2];
+    const char *metric_name = "response";
+
+    /* Parse optional --metric flag */
+    for (int i = 3; i < argc - 1; i++) {
+        if (strcmp(argv[i], "--metric") == 0) {
+            metric_name = argv[i + 1];
+            break;
+        }
+    }
+
+    char content[4096];
+    if (read_file_content(tgu_file, content, sizeof(content)) != 0) return 1;
+
+    char error[TAGUCHI_ERROR_SIZE];
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    if (!def) {
+        fprintf(stderr, "Error parsing %s: %s\n", tgu_file, error);
+        return 1;
+    }
+
+    taguchi_result_set_t *results = taguchi_create_result_set(def, metric_name);
+    if (!results) {
+        fprintf(stderr, "Error creating result set\n");
+        taguchi_free_definition(def);
+        return 1;
+    }
+
+    if (parse_csv_results(csv_file, results, error) != 0) {
+        fprintf(stderr, "Error reading results: %s\n", error);
+        taguchi_free_result_set(results);
+        taguchi_free_definition(def);
+        return 1;
+    }
+
+    taguchi_main_effect_t **effects = NULL;
+    size_t effect_count = 0;
+    if (taguchi_calculate_main_effects(results, &effects, &effect_count, error) != 0) {
+        fprintf(stderr, "Error calculating effects: %s\n", error);
+        taguchi_free_result_set(results);
+        taguchi_free_definition(def);
+        return 1;
+    }
+
+    /* Print main effects table */
+    printf("Main Effects for metric: %s\n", metric_name);
+    printf("%-20s %8s   Level Means\n", "Factor", "Range");
+    printf("%-20s %8s   -----------\n", "------", "-----");
+
+    for (size_t i = 0; i < effect_count; i++) {
+        const char *name = taguchi_effect_get_factor(effects[i]);
+        double range = taguchi_effect_get_range(effects[i]);
+        size_t level_count = 0;
+        const double *means = taguchi_effect_get_level_means(effects[i], &level_count);
+
+        printf("%-20s %8.3f   ", name, range);
+        for (size_t lv = 0; lv < level_count; lv++) {
+            if (lv > 0) printf(", ");
+            printf("L%zu=%.3f", lv + 1, means[lv]);
+        }
+        printf("\n");
+    }
+
+    taguchi_free_effects(effects, effect_count);
+    taguchi_free_result_set(results);
+    taguchi_free_definition(def);
+    return 0;
+}
+
+static int cmd_analyze(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Error: analyze command requires .tgu file and results CSV\n");
+        fprintf(stderr, "Usage: analyze <file.tgu> <results.csv> [--metric name] [--minimize]\n");
+        return 1;
+    }
+
+    const char *tgu_file = argv[1];
+    const char *csv_file = argv[2];
+    const char *metric_name = "response";
+    bool higher_is_better = true;
+
+    /* Parse optional flags */
+    for (int i = 3; i < argc; i++) {
+        if (strcmp(argv[i], "--metric") == 0 && i + 1 < argc) {
+            metric_name = argv[++i];
+        } else if (strcmp(argv[i], "--minimize") == 0) {
+            higher_is_better = false;
+        }
+    }
+
+    char content[4096];
+    if (read_file_content(tgu_file, content, sizeof(content)) != 0) return 1;
+
+    char error[TAGUCHI_ERROR_SIZE];
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    if (!def) {
+        fprintf(stderr, "Error parsing %s: %s\n", tgu_file, error);
+        return 1;
+    }
+
+    taguchi_result_set_t *results = taguchi_create_result_set(def, metric_name);
+    if (!results) {
+        fprintf(stderr, "Error creating result set\n");
+        taguchi_free_definition(def);
+        return 1;
+    }
+
+    if (parse_csv_results(csv_file, results, error) != 0) {
+        fprintf(stderr, "Error reading results: %s\n", error);
+        taguchi_free_result_set(results);
+        taguchi_free_definition(def);
+        return 1;
+    }
+
+    taguchi_main_effect_t **effects = NULL;
+    size_t effect_count = 0;
+    if (taguchi_calculate_main_effects(results, &effects, &effect_count, error) != 0) {
+        fprintf(stderr, "Error calculating effects: %s\n", error);
+        taguchi_free_result_set(results);
+        taguchi_free_definition(def);
+        return 1;
+    }
+
+    /* Print effects summary */
+    printf("Analysis for metric: %s (%s)\n\n",
+           metric_name, higher_is_better ? "maximizing" : "minimizing");
+
+    printf("Main Effects:\n");
+    printf("%-20s %8s   Level Means\n", "Factor", "Range");
+    printf("%-20s %8s   -----------\n", "------", "-----");
+
+    for (size_t i = 0; i < effect_count; i++) {
+        const char *name = taguchi_effect_get_factor(effects[i]);
+        double range = taguchi_effect_get_range(effects[i]);
+        size_t level_count = 0;
+        const double *means = taguchi_effect_get_level_means(effects[i], &level_count);
+
+        printf("%-20s %8.3f   ", name, range);
+        for (size_t lv = 0; lv < level_count; lv++) {
+            if (lv > 0) printf(", ");
+            printf("L%zu=%.3f", lv + 1, means[lv]);
+        }
+        printf("\n");
+    }
+
+    /* Print recommendation */
+    char recommendation[1024];
+    if (taguchi_recommend_optimal((const taguchi_main_effect_t **)effects, effect_count,
+                                   higher_is_better, recommendation, sizeof(recommendation)) == 0) {
+        printf("\nOptimal Configuration: %s\n", recommendation);
+    }
+
+    taguchi_free_effects(effects, effect_count);
+    taguchi_free_result_set(results);
+    taguchi_free_definition(def);
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         print_usage(argv[0]);
@@ -326,6 +584,10 @@ int main(int argc, char *argv[]) {
         return cmd_validate(sub_argc, sub_argv);
     } else if (strcmp(command, "run") == 0) {
         return cmd_run(sub_argc, sub_argv);
+    } else if (strcmp(command, "analyze") == 0) {
+        return cmd_analyze(sub_argc, sub_argv);
+    } else if (strcmp(command, "effects") == 0) {
+        return cmd_effects(sub_argc, sub_argv);
     } else {
         fprintf(stderr, "Unknown command: %s\n", command);
         print_usage(argv[0]);

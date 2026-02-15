@@ -36,13 +36,16 @@ This design ensures that each factor's levels are evenly distributed and balance
 
 ## Features
 
-- **Orthogonal Array Support**: L4, L8, L9, L16, L27
+- **Orthogonal Array Support**: L4, L8, L9, L16, L27, L81, L243 (GF(3) algorithmic generation)
+- **Column Pairing**: Multi-level factors (4-27 levels) via automatic column pairing/tripling
+- **Mixed-Level Support**: Factors with different level counts in the same experiment
+- **Auto Array Selection**: Automatically picks the smallest suitable array when not specified
+- **Main Effects Analysis**: Calculate factor significance, level means, and optimal configurations
 - **YAML-like Configuration**: Human-readable `.tgu` experiment definition files
 - **JSON Serialization**: Output for language bindings and external tools
 - **Memory Safe**: No leaks, bounds checking, safe string handling
 - **Cross-Platform**: Pure C99 with POSIX libc
 - **Extensible**: Library-first design for maximum reusability
-- **Optional Array Specification**: Auto-select best array when not specified
 
 ## Build Status
 
@@ -57,20 +60,20 @@ This design ensures that each factor's levels are evenly distributed and balance
 
 ### ✅ Complete Modules
 1. **Infrastructure** - Memory management, error handling, utilities (utils.c/h)
-2. **Arrays** - Orthogonal arrays (L4, L8, L9, L16, L27) with mathematical verification (arrays.c/h)  
+2. **Arrays** - Orthogonal arrays (L4, L8, L9, L16, L27, L81, L243) with mathematical verification (arrays.c/h)
 3. **Parser** - YAML-like `.tgu` file parsing and validation (parser.c/h)
 4. **Generator** - Mapping factor definitions to experimental runs (generator.c/h)
 5. **Serializer** - JSON serialization for language bindings (serializer.c/h)
 6. **Analyzer** - Statistical analysis and main effects calculation (analyzer.c/h)
 7. **Public API** - Complete facade connecting all modules (taguchi.c/h)
-8. **CLI** - Command-line interface with run, generate, validate, list-arrays commands (main.c)
-9. **API Extensions** - Enhanced functions for enumeration and auto-selection
+8. **CLI** - Command-line interface with generate, run, analyze, effects, validate, list-arrays commands (main.c)
+9. **API Extensions** - Enhanced functions for enumeration, auto-selection, and analysis
 
-### 🔧 API Enhancements Added
-- `taguchi_run_get_factor_count()` - Get number of factors in a run
-- `taguchi_run_get_factor_name_at_index()` - Get factor name by index  
-- `taguchi_suggest_optimal_array()` - Auto-select best array for experiments
-- Enhanced factor enumeration capabilities
+### 🔧 Key Capabilities
+- **Column Pairing**: Factors with 4-9 levels use 2 paired columns; 10-27 levels use 3 columns
+- **Mixed-Level Designs**: Factors with fewer levels than base use modular wrapping
+- **GF(3) Array Generation**: L27, L81, L243 generated algorithmically for guaranteed orthogonality
+- **Full Analysis Pipeline**: Main effects calculation, optimal level recommendation, JSON export
 
 ## Quick Start
 
@@ -183,14 +186,23 @@ void taguchi_free_runs(taguchi_experiment_run_t **runs, size_t count);
 ```c
 const char **taguchi_list_arrays(void);
 const char *taguchi_suggest_optimal_array(const taguchi_experiment_def_t *def, char *error_buf);
+int taguchi_get_array_info(const char *name, size_t *rows_out, size_t *cols_out, size_t *levels_out);
 ```
 
-### Results Analysis
+### Results Collection
 ```c
 taguchi_result_set_t *taguchi_create_result_set(const taguchi_experiment_def_t *def, const char *metric_name);
 int taguchi_add_result(taguchi_result_set_t *results, size_t run_id, double response_value, char *error_buf);
-int taguchi_calculate_main_effects(const taguchi_result_set_t *results, taguchi_main_effect_t ***effects_out, size_t *count_out, char *error_buf);
 void taguchi_free_result_set(taguchi_result_set_t *results);
+```
+
+### Analysis
+```c
+int taguchi_calculate_main_effects(const taguchi_result_set_t *results, taguchi_main_effect_t ***effects_out, size_t *count_out, char *error_buf);
+const char *taguchi_effect_get_factor(const taguchi_main_effect_t *effect);
+const double *taguchi_effect_get_level_means(const taguchi_main_effect_t *effect, size_t *level_count_out);
+double taguchi_effect_get_range(const taguchi_main_effect_t *effect);
+int taguchi_recommend_optimal(const taguchi_main_effect_t **effects, size_t effect_count, bool higher_is_better, char *recommendation_buf, size_t buf_size);
 void taguchi_free_effects(taguchi_main_effect_t **effects, size_t count);
 ```
 
@@ -198,9 +210,11 @@ void taguchi_free_effects(taguchi_main_effect_t **effects, size_t count);
 
 The CLI tool provides Unix-style commands:
 
-- `taguchi list-arrays` - List available orthogonal arrays
-- `taguchi generate <file.tgu>` - Generate experiment runs from definition  
+- `taguchi list-arrays` - List available orthogonal arrays with details (rows, columns, levels)
+- `taguchi generate <file.tgu>` - Generate experiment runs from definition
 - `taguchi run <file.tgu> <script.sh>` - Execute external script for each run with environment variables
+- `taguchi analyze <file.tgu> <results.csv> [--metric name] [--minimize]` - Full analysis with recommendations
+- `taguchi effects <file.tgu> <results.csv> [--metric name]` - Calculate and display main effects
 - `taguchi validate <file.tgu>` - Validate experiment definition
 - `taguchi --help` - Show help
 - `taguchi --version` - Show version
@@ -280,13 +294,30 @@ const taguchiLib = ffi.Library('./libtaguchi', {
 ## Mathematical Basis
 
 The library implements mathematically correct orthogonal arrays:
-- **L4**: 4 runs, 3 factors, 2 levels each (2^(3-1) fractional factorial)
-- **L8**: 8 runs, 7 factors, 2 levels each (2^(7-4) fractional factorial) 
-- **L9**: 9 runs, 4 factors, 3 levels each (3^(4-2) fractional factorial)
-- **L16**: 16 runs, 15 factors, 2 levels each (2^(15-4) fractional factorial)
-- **L27**: 27 runs, 13 factors, 3 levels each (3^(13-8) fractional factorial)
 
-Each array maintains orthogonality properties where every pair of columns contains all possible level combinations with equal frequency.
+**2-Level Arrays (hardcoded)**:
+- **L4**: 4 runs, 3 columns, 2 levels
+- **L8**: 8 runs, 7 columns, 2 levels
+- **L16**: 16 runs, 15 columns, 2 levels
+
+**3-Level Arrays (GF(3) generated)**:
+- **L9**: 9 runs, 4 columns, 3 levels
+- **L27**: 27 runs, 13 columns, 3 levels (GF(3)^3)
+- **L81**: 81 runs, 40 columns, 3 levels (GF(3)^4)
+- **L243**: 243 runs, 121 columns, 3 levels (GF(3)^5)
+
+L27, L81, and L243 are generated algorithmically using linear combinations over GF(3).
+Rows are all n-tuples in {0,1,2}^n; columns are inner products with canonical vectors
+(one representative from each {v, 2v} pair). Unit vectors are placed first to guarantee
+linear independence for multi-column factor assignments.
+
+**Column Pairing**: Factors with more levels than the base use multiple columns:
+- 1-3 levels: 1 column (base-3 array)
+- 4-9 levels: 2 columns paired (3^2 = 9 slots)
+- 10-27 levels: 3 columns tripled (3^3 = 27 slots)
+
+Each array maintains orthogonality properties where every pair of columns contains all
+possible level combinations with equal frequency.
 
 ## Usage Scenarios
 

@@ -250,48 +250,19 @@ void taguchi_free_runs(taguchi_experiment_run_t **runs, size_t count) {
 
 /*
  * ============================================================================
- * Results API Implementation (Stubs for now)
+ * Results API Implementation
  * ============================================================================
  */
 
 taguchi_result_set_t *taguchi_create_result_set(const taguchi_experiment_def_t *def, const char *metric_name) {
     if (!def || !metric_name) return NULL;
 
+    if (strlen(metric_name) >= MAX_FACTOR_NAME) return NULL;
+
     taguchi_result_set_t *results = xmalloc(sizeof(taguchi_result_set_t));
+    memset(&results->internal_results, 0, sizeof(ResultSet));
 
-    // Use the analyzer module's implementation
-    ResultSet *internal_results = create_result_set(&def->internal_def, metric_name);
-    if (!internal_results) {
-        free(results);
-        return NULL;
-    }
-
-    // Copy the internal result set structure
-    memcpy(&results->internal_results, internal_results, sizeof(ResultSet));
-
-    // Free the temporary analyzer structure (we copied it)
-    // Actually, we can't free this because we copied data from it
-    // Need to handle this correctly. Let's recreate the structure properly:
-    free(internal_results);
-
-    // Re-initialize properly to avoid memory issues with pointers
-    ResultSet *result_ptr = create_result_set(&def->internal_def, metric_name);
-    if (!result_ptr) {
-        free(results);
-        return NULL;
-    }
-
-    // Since we can't copy the structure safely due to pointers, let's initialize properly
-    // We need to recreate the result set inside the taguchi structure
-    memcpy(&results->internal_results, result_ptr, sizeof(ResultSet));
-
-    // Free the created analyzer result set but not its internal pointers since they're now part of our copy
-    // This is actually complex with pointers. Let's simplify by implementing directly:
-
-    // Free temp and create a fresh one
-    free_result_set(result_ptr);
-    // Actually let's initialize the structure differently to avoid copying issues
-    results->internal_results.experiment_def = (ExperimentDef*)&def->internal_def;  // Store pointer
+    results->internal_results.experiment_def = (ExperimentDef *)&def->internal_def;
     results->internal_results.capacity = 16;
     results->internal_results.responses = xmalloc(results->internal_results.capacity * sizeof(double));
     results->internal_results.run_ids = xmalloc(results->internal_results.capacity * sizeof(size_t));
@@ -331,52 +302,88 @@ void taguchi_free_result_set(taguchi_result_set_t *results) {
 
 /*
  * ============================================================================
- * Analysis API Implementation (Stubs for now)
+ * Analysis API Implementation
  * ============================================================================
  */
 
 int taguchi_calculate_main_effects(const taguchi_result_set_t *results, taguchi_main_effect_t ***effects_out, size_t *count_out, char *error_buf) {
-    // Implementation will be added when analyzer module is developed
-    (void)results;            // Suppress unused parameter
-    (void)effects_out;        // Suppress unused parameter
-    (void)count_out;          // Suppress unused parameter
-    (void)error_buf;          // Suppress unused parameter
-    return -1;
+    if (!results || !effects_out || !count_out) {
+        set_error(error_buf, "Invalid parameters to taguchi_calculate_main_effects");
+        return -1;
+    }
+
+    MainEffect *internal_effects = NULL;
+    size_t internal_count = 0;
+
+    int rc = calculate_main_effects(&results->internal_results, &internal_effects, &internal_count);
+    if (rc != 0) {
+        set_error(error_buf, "Failed to calculate main effects");
+        return -1;
+    }
+
+    /* Wrap internal effects in opaque handles */
+    taguchi_main_effect_t **external_effects = xmalloc(internal_count * sizeof(taguchi_main_effect_t *));
+    for (size_t i = 0; i < internal_count; i++) {
+        external_effects[i] = xmalloc(sizeof(taguchi_main_effect_t));
+        memcpy(&external_effects[i]->internal_effect, &internal_effects[i], sizeof(MainEffect));
+        /* Null out level_means in the source so free_main_effects won't double-free */
+        internal_effects[i].level_means = NULL;
+    }
+
+    /* Free the internal array shell (level_means ownership transferred above) */
+    free(internal_effects);
+
+    *effects_out = external_effects;
+    *count_out = internal_count;
+    return 0;
 }
 
 const char *taguchi_effect_get_factor(const taguchi_main_effect_t *effect) {
-    // Implementation will be added when analyzer module is developed
-    (void)effect;             // Suppress unused parameter
-    return NULL;
+    if (!effect) return NULL;
+    return effect->internal_effect.factor_name;
 }
 
 const double *taguchi_effect_get_level_means(const taguchi_main_effect_t *effect, size_t *level_count_out) {
-    // Implementation will be added when analyzer module is developed
-    (void)effect;             // Suppress unused parameter
-    if (level_count_out) *level_count_out = 0;
-    return NULL;
+    if (!effect) {
+        if (level_count_out) *level_count_out = 0;
+        return NULL;
+    }
+    if (level_count_out) *level_count_out = effect->internal_effect.level_count;
+    return effect->internal_effect.level_means;
 }
 
 double taguchi_effect_get_range(const taguchi_main_effect_t *effect) {
-    // Implementation will be added when analyzer module is developed
-    (void)effect;             // Suppress unused parameter
-    return 0.0;
+    if (!effect) return 0.0;
+    return effect->internal_effect.range;
 }
 
 void taguchi_free_effects(taguchi_main_effect_t **effects, size_t count) {
-    // Implementation will be added when analyzer module is developed
-    (void)effects;            // Suppress unused parameter
-    (void)count;              // Suppress unused parameter
+    if (effects) {
+        for (size_t i = 0; i < count; i++) {
+            if (effects[i]) {
+                free(effects[i]->internal_effect.level_means);
+                free(effects[i]);
+            }
+        }
+        free(effects);
+    }
 }
 
 int taguchi_recommend_optimal(const taguchi_main_effect_t **effects, size_t effect_count, bool higher_is_better, char *recommendation_buf, size_t buf_size) {
-    // Implementation will be added when analyzer module is developed
-    (void)effects;            // Suppress unused parameter
-    (void)effect_count;       // Suppress unused parameter
-    (void)higher_is_better;   // Suppress unused parameter
-    (void)recommendation_buf; // Suppress unused parameter
-    (void)buf_size;           // Suppress unused parameter
-    return -1;
+    if (!effects || !recommendation_buf || buf_size == 0 || effect_count == 0) {
+        return -1;
+    }
+
+    /* Build an array of internal MainEffect structs for the analyzer */
+    MainEffect *internal_effects = xmalloc(effect_count * sizeof(MainEffect));
+    for (size_t i = 0; i < effect_count; i++) {
+        memcpy(&internal_effects[i], &effects[i]->internal_effect, sizeof(MainEffect));
+    }
+
+    int rc = recommend_optimal_levels(internal_effects, effect_count, higher_is_better,
+                                       recommendation_buf, buf_size);
+    free(internal_effects);
+    return rc;
 }
 
 /*
@@ -406,10 +413,32 @@ char *taguchi_runs_to_json(const taguchi_experiment_run_t **runs, size_t count) 
 }
 
 char *taguchi_effects_to_json(const taguchi_main_effect_t **effects, size_t count) {
-    // For now return a basic JSON placeholder - will be implemented when analyzer is complete
-    (void)effects;  // Suppress unused parameter
-    char *json = xmalloc(100);
-    snprintf(json, 100, "[/* %zu effects serialized */]", count);
+    if (!effects || count == 0) {
+        char *result = xmalloc(3);
+        strcpy(result, "[]");
+        return result;
+    }
+
+    /* Build JSON manually for effects */
+    size_t buf_size = 1024 + count * 512;
+    char *json = xmalloc(buf_size);
+    size_t pos = 0;
+
+    pos += (size_t)snprintf(json + pos, buf_size - pos, "[\n");
+    for (size_t i = 0; i < count; i++) {
+        const MainEffect *e = &effects[i]->internal_effect;
+        pos += (size_t)snprintf(json + pos, buf_size - pos,
+            "  {\"factor\": \"%s\", \"range\": %.6f, \"level_means\": [",
+            e->factor_name, e->range);
+        for (size_t lv = 0; lv < e->level_count; lv++) {
+            if (lv > 0) pos += (size_t)snprintf(json + pos, buf_size - pos, ", ");
+            pos += (size_t)snprintf(json + pos, buf_size - pos, "%.6f", e->level_means[lv]);
+        }
+        pos += (size_t)snprintf(json + pos, buf_size - pos, "]}%s\n",
+            (i < count - 1) ? "," : "");
+    }
+    pos += (size_t)snprintf(json + pos, buf_size - pos, "]");
+
     return json;
 }
 
