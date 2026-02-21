@@ -23,14 +23,23 @@ TEST(get_array_null) {
 TEST(list_arrays_valid) {
     const char **names = list_array_names();
     ASSERT_NOT_NULL(names);
+    /* GF(2) series first, then GF(3) series */
     ASSERT_STR_EQ(names[0], "L4");
     ASSERT_STR_EQ(names[1], "L8");
     ASSERT_STR_EQ(names[2], "L9");
     ASSERT_STR_EQ(names[3], "L16");
-    ASSERT_STR_EQ(names[4], "L27");
-    ASSERT_STR_EQ(names[5], "L81");
-    ASSERT_STR_EQ(names[6], "L243");
-    ASSERT_NULL(names[7]);
+    ASSERT_STR_EQ(names[4], "L32");
+    ASSERT_STR_EQ(names[5], "L64");
+    ASSERT_STR_EQ(names[6], "L128");
+    ASSERT_STR_EQ(names[7], "L256");
+    ASSERT_STR_EQ(names[8], "L512");
+    ASSERT_STR_EQ(names[9], "L1024");
+    ASSERT_STR_EQ(names[10], "L27");
+    ASSERT_STR_EQ(names[11], "L81");
+    ASSERT_STR_EQ(names[12], "L243");
+    ASSERT_STR_EQ(names[13], "L729");
+    ASSERT_STR_EQ(names[14], "L2187");
+    ASSERT_NULL(names[15]);
 }
 
 // Helper function to check the balance property of an orthogonal array
@@ -155,6 +164,225 @@ TEST(l243_values_in_range) {
 TEST(l243_is_orthogonal) {
     const OrthogonalArray *array = get_array("L243");
     check_orthogonality(array);
+}
+
+/* Tests for extended GF(2) series */
+TEST(get_array_l32) {
+    const OrthogonalArray *array = get_array("L32");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L32");
+    ASSERT_EQ(array->rows, 32);
+    ASSERT_EQ(array->cols, 31);
+    ASSERT_EQ(array->levels, 2);
+}
+
+TEST(l32_values_in_range) {
+    const OrthogonalArray *array = get_array("L32");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        for (size_t c = 0; c < array->cols; c++) {
+            int val = array->data[r * array->cols + c];
+            ASSERT(val >= 0 && val < 2);
+        }
+    }
+}
+
+TEST(get_array_l64) {
+    const OrthogonalArray *array = get_array("L64");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L64");
+    ASSERT_EQ(array->rows, 64);
+    ASSERT_EQ(array->cols, 63);
+    ASSERT_EQ(array->levels, 2);
+}
+
+TEST(get_array_l1024) {
+    const OrthogonalArray *array = get_array("L1024");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L1024");
+    ASSERT_EQ(array->rows, 1024);
+    ASSERT_EQ(array->cols, 1023);
+    ASSERT_EQ(array->levels, 2);
+}
+
+/* Tests for extended GF(3) series */
+TEST(get_array_l729) {
+    const OrthogonalArray *array = get_array("L729");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L729");
+    ASSERT_EQ(array->rows, 729);
+    ASSERT_EQ(array->cols, 364);
+    ASSERT_EQ(array->levels, 3);
+}
+
+TEST(l729_values_in_range) {
+    const OrthogonalArray *array = get_array("L729");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        for (size_t c = 0; c < array->cols; c++) {
+            int val = array->data[r * array->cols + c];
+            ASSERT(val >= 0 && val < 3);
+        }
+    }
+}
+
+TEST(get_array_l2187) {
+    const OrthogonalArray *array = get_array("L2187");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L2187");
+    ASSERT_EQ(array->rows, 2187);
+    ASSERT_EQ(array->cols, 1093);
+    ASSERT_EQ(array->levels, 3);
+}
+
+TEST(l2187_values_in_range) {
+    const OrthogonalArray *array = get_array("L2187");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        for (size_t c = 0; c < array->cols; c++) {
+            int val = array->data[r * array->cols + c];
+            ASSERT(val >= 0 && val < 3);
+        }
+    }
+}
+
+/* Orthogonality tests for extended GF(2) series */
+TEST(l32_is_orthogonal) {
+    const OrthogonalArray *array = get_array("L32");
+    check_orthogonality(array);
+}
+
+TEST(l64_is_orthogonal) {
+    const OrthogonalArray *array = get_array("L64");
+    check_orthogonality(array);
+}
+
+/* Spot-check orthogonality for larger GF(2) arrays (full check too slow) */
+TEST(l128_spot_check) {
+    const OrthogonalArray *array = get_array("L128");
+    ASSERT_NOT_NULL(array);
+    ASSERT_EQ(array->rows, 128);
+    ASSERT_EQ(array->cols, 127);
+    ASSERT_EQ(array->levels, 2);
+    
+    /* Spot check: verify first 3 column pairs have balanced level combinations */
+    for (size_t c1 = 0; c1 < 3; c1++) {
+        for (size_t c2 = c1 + 1; c2 < 3; c2++) {
+            size_t count_00 = 0, count_01 = 0, count_10 = 0, count_11 = 0;
+            for (size_t r = 0; r < array->rows; r++) {
+                int v1 = array->data[r * array->cols + c1];
+                int v2 = array->data[r * array->cols + c2];
+                if (v1 == 0 && v2 == 0) count_00++;
+                else if (v1 == 0 && v2 == 1) count_01++;
+                else if (v1 == 1 && v2 == 0) count_10++;
+                else if (v1 == 1 && v2 == 1) count_11++;
+            }
+            /* Each combination should appear rows/4 = 32 times */
+            ASSERT_EQ(count_00, 32);
+            ASSERT_EQ(count_01, 32);
+            ASSERT_EQ(count_10, 32);
+            ASSERT_EQ(count_11, 32);
+        }
+    }
+}
+
+TEST(l256_spot_check) {
+    const OrthogonalArray *array = get_array("L256");
+    ASSERT_NOT_NULL(array);
+    ASSERT_EQ(array->rows, 256);
+    ASSERT_EQ(array->cols, 255);
+    
+    /* Spot check first column pair */
+    size_t count_00 = 0, count_01 = 0, count_10 = 0, count_11 = 0;
+    for (size_t r = 0; r < array->rows; r++) {
+        int v1 = array->data[r * array->cols];
+        int v2 = array->data[r * array->cols + 1];
+        if (v1 == 0 && v2 == 0) count_00++;
+        else if (v1 == 0 && v2 == 1) count_01++;
+        else if (v1 == 1 && v2 == 0) count_10++;
+        else if (v1 == 1 && v2 == 1) count_11++;
+    }
+    ASSERT_EQ(count_00, 64);
+    ASSERT_EQ(count_01, 64);
+    ASSERT_EQ(count_10, 64);
+    ASSERT_EQ(count_11, 64);
+}
+
+TEST(l512_spot_check) {
+    const OrthogonalArray *array = get_array("L512");
+    ASSERT_NOT_NULL(array);
+    ASSERT_EQ(array->rows, 512);
+    ASSERT_EQ(array->cols, 511);
+    
+    /* Spot check first column pair */
+    size_t count_00 = 0, count_01 = 0, count_10 = 0, count_11 = 0;
+    for (size_t r = 0; r < array->rows; r++) {
+        int v1 = array->data[r * array->cols];
+        int v2 = array->data[r * array->cols + 1];
+        if (v1 == 0 && v2 == 0) count_00++;
+        else if (v1 == 0 && v2 == 1) count_01++;
+        else if (v1 == 1 && v2 == 0) count_10++;
+        else if (v1 == 1 && v2 == 1) count_11++;
+    }
+    ASSERT_EQ(count_00, 128);
+    ASSERT_EQ(count_01, 128);
+    ASSERT_EQ(count_10, 128);
+    ASSERT_EQ(count_11, 128);
+}
+
+TEST(l1024_spot_check) {
+    const OrthogonalArray *array = get_array("L1024");
+    ASSERT_NOT_NULL(array);
+    ASSERT_EQ(array->rows, 1024);
+    ASSERT_EQ(array->cols, 1023);
+    
+    /* Spot check first column pair */
+    size_t count_00 = 0, count_01 = 0, count_10 = 0, count_11 = 0;
+    for (size_t r = 0; r < array->rows; r++) {
+        int v1 = array->data[r * array->cols];
+        int v2 = array->data[r * array->cols + 1];
+        if (v1 == 0 && v2 == 0) count_00++;
+        else if (v1 == 0 && v2 == 1) count_01++;
+        else if (v1 == 1 && v2 == 0) count_10++;
+        else if (v1 == 1 && v2 == 1) count_11++;
+    }
+    ASSERT_EQ(count_00, 256);
+    ASSERT_EQ(count_01, 256);
+    ASSERT_EQ(count_10, 256);
+    ASSERT_EQ(count_11, 256);
+}
+
+/* Orthogonality tests for extended GF(3) series */
+TEST(l729_is_orthogonal) {
+    const OrthogonalArray *array = get_array("L729");
+    check_orthogonality(array);
+}
+
+/* Spot-check for L2187 (full orthogonality check too slow) */
+TEST(l2187_spot_check) {
+    const OrthogonalArray *array = get_array("L2187");
+    ASSERT_NOT_NULL(array);
+    ASSERT_EQ(array->rows, 2187);
+    ASSERT_EQ(array->cols, 1093);
+    ASSERT_EQ(array->levels, 3);
+    
+    /* Spot check: verify first 2 column pairs have balanced level combinations */
+    for (size_t c1 = 0; c1 < 2; c1++) {
+        for (size_t c2 = c1 + 1; c2 < 2; c2++) {
+            size_t counts[3][3] = {{0}};
+            for (size_t r = 0; r < array->rows; r++) {
+                int v1 = array->data[r * array->cols + c1];
+                int v2 = array->data[r * array->cols + c2];
+                counts[v1][v2]++;
+            }
+            /* Each combination should appear rows/9 = 243 times */
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    ASSERT_EQ(counts[i][j], 243);
+                }
+            }
+        }
+    }
 }
 
 TEST(columns_needed_basic) {

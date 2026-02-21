@@ -15,13 +15,14 @@ The Taguchi Array Tool is a complete, production-ready C library for designing a
 - Build system with static/shared library support
 - Comprehensive test framework with valgrind integration
 
-#### **Arrays Module**  
-- Complete set of orthogonal arrays: L4(2³), L8(2⁷), L9(3⁴), L16(2¹⁵), L27(3¹³)*
+#### **Arrays Module**
+- Complete set of orthogonal arrays:
+  - **GF(2) series**: L4(2³), L8(2⁷), L16(2¹⁵), L32(2³¹), L64(2⁶³), L128(2¹²⁷), L256(2²⁵⁵), L512(2⁵¹¹), L1024(2¹⁰²³)
+  - **GF(3) series**: L9(3⁴), L27(3¹³), L81(3⁴⁰), L243(3¹²¹), L729(3³⁶⁴), L2187(3¹⁰⁹³)
+- Algorithmically generated via Galois Field theory for guaranteed orthogonality
 - Mathematical verification of orthogonality properties
 - Array lookup and metadata access functions
 - Proper bounds checking and validation
-
-*Note: L27 orthogonality construction verified and working
 
 #### **Parser Module**
 - YAML-like `.tgu` file parsing (factors: level definitions, array: specification)

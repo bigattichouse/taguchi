@@ -22,6 +22,22 @@ extern void test_l81_is_orthogonal(void);
 extern void test_get_array_l243(void);
 extern void test_l243_values_in_range(void);
 extern void test_l243_is_orthogonal(void);
+extern void test_get_array_l32(void);
+extern void test_l32_values_in_range(void);
+extern void test_get_array_l64(void);
+extern void test_get_array_l1024(void);
+extern void test_get_array_l729(void);
+extern void test_l729_values_in_range(void);
+extern void test_get_array_l2187(void);
+extern void test_l2187_values_in_range(void);
+extern void test_l32_is_orthogonal(void);
+extern void test_l64_is_orthogonal(void);
+extern void test_l128_spot_check(void);
+extern void test_l256_spot_check(void);
+extern void test_l512_spot_check(void);
+extern void test_l1024_spot_check(void);
+extern void test_l729_is_orthogonal(void);
+extern void test_l2187_spot_check(void);
 extern void test_columns_needed_basic(void);
 
 /* Declare test functions from test_parser.c */
@@ -46,6 +62,14 @@ extern void test_mixed_level_2_in_3level_array(void);
 extern void test_peltier_style_experiment(void);
 extern void test_auto_select_with_9level_factor(void);
 extern void test_auto_select_vs_manual_specification(void);
+extern void test_auto_select_l32_for_6_two_level_factors(void);
+extern void test_auto_select_l64_for_many_two_level_factors(void);
+extern void test_auto_select_l128_for_50_two_level_factors(void);
+extern void test_auto_select_l729_for_many_three_level_factors(void);
+extern void test_generation_with_l32(void);
+extern void test_generation_with_l64(void);
+extern void test_generation_with_l729(void);
+extern void test_auto_select_l729_for_100_three_level_factors(void);
 
 /* Declare test functions from test_analyzer.c */
 extern void test_analyzer_create_result_set(void);
@@ -103,6 +127,22 @@ int main(void) {
     RUN_TEST(get_array_l243);
     RUN_TEST(l243_values_in_range);
     RUN_TEST(l243_is_orthogonal);
+    RUN_TEST(get_array_l32);
+    RUN_TEST(l32_values_in_range);
+    RUN_TEST(get_array_l64);
+    RUN_TEST(get_array_l1024);
+    RUN_TEST(get_array_l729);
+    RUN_TEST(l729_values_in_range);
+    RUN_TEST(get_array_l2187);
+    RUN_TEST(l2187_values_in_range);
+    RUN_TEST(l32_is_orthogonal);
+    RUN_TEST(l64_is_orthogonal);
+    RUN_TEST(l128_spot_check);
+    RUN_TEST(l256_spot_check);
+    RUN_TEST(l512_spot_check);
+    RUN_TEST(l1024_spot_check);
+    RUN_TEST(l729_is_orthogonal);
+    RUN_TEST(l2187_spot_check);
     RUN_TEST(columns_needed_basic);
 
     printf("\\nParser Tests:\\n");
@@ -127,6 +167,14 @@ int main(void) {
     RUN_TEST(peltier_style_experiment);
     RUN_TEST(auto_select_with_9level_factor);
     RUN_TEST(auto_select_vs_manual_specification);
+    RUN_TEST(auto_select_l32_for_6_two_level_factors);
+    RUN_TEST(auto_select_l64_for_many_two_level_factors);
+    RUN_TEST(auto_select_l128_for_50_two_level_factors);
+    RUN_TEST(auto_select_l729_for_many_three_level_factors);
+    RUN_TEST(generation_with_l32);
+    RUN_TEST(generation_with_l64);
+    RUN_TEST(generation_with_l729);
+    RUN_TEST(auto_select_l729_for_100_three_level_factors);
 
     printf("\\nAnalyzer Tests:\\n");
     RUN_TEST(analyzer_create_result_set);

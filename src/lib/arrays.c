@@ -59,29 +59,34 @@ static const int L16_data[] = {
 /* L27 is generated algorithmically (GF(3)^3) for guaranteed orthogonality */
 
 /*
- * GF(3) orthogonal array generator for L(3^n) arrays.
+ * General GF(p) orthogonal array generator for L(p^n) arrays.
  * Generates arrays by enumerating all n-tuples as rows and using
- * linear combinations over GF(3) as columns.
+ * linear combinations over GF(p) as columns.
  *
- * For n dimensions: rows = 3^n, cols = (3^n - 1) / 2
- * Each column is one representative from each pair {v, 2v} of
- * non-zero vectors in GF(3)^n.
+ * For prime p and n dimensions: rows = p^n, cols = (p^n - 1) / (p - 1)
+ * Each column is one representative from each equivalence class of
+ * non-zero vectors in GF(p)^n under scalar multiplication.
+ *
+ * For GF(2): cols = 2^n - 1 (no scalar multiples except self)
+ * For GF(3): cols = (3^n - 1) / 2 (pairs {v, 2v})
  */
 
-/* Compute 3^n for small n */
-static size_t pow3(int n) {
+/* Compute p^n for small n, small prime p */
+static size_t pow_p(int p, int n) {
     size_t result = 1;
     for (int i = 0; i < n; i++) {
-        result *= 3;
+        result *= (size_t)p;
     }
     return result;
 }
 
 /*
- * Check if vector v is the canonical representative of {v, 2v}.
+ * Check if vector v is the canonical representative of its scalar multiple class.
  * We pick the one whose first non-zero component is 1.
+ * Works for both GF(2) and GF(3).
  */
-static bool is_canonical_gf3(const int *v, int n) {
+static bool is_canonical(const int *v, int n) {
+    (void)n; /* Used in loop bounds */
     for (int i = 0; i < n; i++) {
         if (v[i] != 0) {
             return v[i] == 1;
@@ -91,17 +96,17 @@ static bool is_canonical_gf3(const int *v, int n) {
 }
 
 /*
- * Generate L(3^n) orthogonal array data.
+ * Generate L(p^n) orthogonal array data for prime p.
  * Returns allocated array data (caller must free).
  *
  * Column ordering: unit vectors (e1..en) come first, then remaining
- * canonical vectors sorted by weight. This ensures sequential column
+ * canonical vectors sorted by index. This ensures sequential column
  * assignment picks linearly independent columns for multi-column
  * (paired/tripled) factors.
  */
-static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
-    size_t rows = pow3(n);
-    size_t cols = (rows - 1) / 2;
+static int *generate_power_oa(int p, int n, size_t *rows_out, size_t *cols_out) {
+    size_t rows = pow_p(p, n);
+    size_t cols = (rows - 1) / (size_t)(p - 1);
 
     *rows_out = rows;
     *cols_out = cols;
@@ -109,7 +114,7 @@ static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
     int *data = xmalloc(rows * cols * sizeof(int));
 
     /* Build the list of canonical column vectors */
-    int (*col_vectors)[5] = xmalloc(cols * sizeof(int[5])); /* max n=5 */
+    int (*col_vectors)[10] = xmalloc(cols * sizeof(int[10])); /* max n=10 for L1024/L2187 */
     size_t col_idx = 0;
 
     /* Phase 1: Insert unit vectors first (e_i for i=0..n-1).
@@ -121,15 +126,15 @@ static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
         col_idx++;
     }
 
-    /* Phase 2: Insert remaining canonical vectors (weight >= 2) */
+    /* Phase 2: Insert remaining canonical vectors */
     for (size_t v = 1; v < rows; v++) {
-        int vec[5];
+        int vec[10];
         size_t tmp = v;
         for (int k = n - 1; k >= 0; k--) {
-            vec[k] = (int)(tmp % 3);
-            tmp /= 3;
+            vec[k] = (int)(tmp % (size_t)p);
+            tmp /= (size_t)p;
         }
-        if (!is_canonical_gf3(vec, n)) continue;
+        if (!is_canonical(vec, n)) continue;
 
         /* Skip unit vectors (already added in phase 1) */
         int nonzero_count = 0;
@@ -147,11 +152,11 @@ static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
     /* Generate array data: for each row (n-tuple) and column (linear combination) */
     for (size_t r = 0; r < rows; r++) {
         /* Decode row index into n-tuple */
-        int x[5];
+        int x[10];
         size_t tmp = r;
         for (int k = n - 1; k >= 0; k--) {
-            x[k] = (int)(tmp % 3);
-            tmp /= 3;
+            x[k] = (int)(tmp % (size_t)p);
+            tmp /= (size_t)p;
         }
 
         /* Compute each column value */
@@ -160,7 +165,7 @@ static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
             for (int k = 0; k < n; k++) {
                 val += col_vectors[c][k] * x[k];
             }
-            data[r * cols + c] = val % 3;
+            data[r * cols + c] = val % p;
         }
     }
 
@@ -168,13 +173,48 @@ static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
     return data;
 }
 
+/*
+ * GF(2) orthogonal array generator for L(2^n) arrays.
+ * For n dimensions: rows = 2^n, cols = 2^n - 1
+ */
+static int *generate_power2_oa(int n, size_t *rows_out, size_t *cols_out) {
+    return generate_power_oa(2, n, rows_out, cols_out);
+}
+
+/*
+ * GF(3) orthogonal array generator for L(3^n) arrays.
+ * For n dimensions: rows = 3^n, cols = (3^n - 1) / 2
+ */
+static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
+    return generate_power_oa(3, n, rows_out, cols_out);
+}
+
 /* Generated array data (initialized lazily) */
+/* GF(2) series */
+static int *L32_data = NULL;
+static int *L64_data = NULL;
+static int *L128_data = NULL;
+static int *L256_data = NULL;
+static int *L512_data = NULL;
+static int *L1024_data = NULL;
+static size_t L32_rows = 0, L32_cols = 0;
+static size_t L64_rows = 0, L64_cols = 0;
+static size_t L128_rows = 0, L128_cols = 0;
+static size_t L256_rows = 0, L256_cols = 0;
+static size_t L512_rows = 0, L512_cols = 0;
+static size_t L1024_rows = 0, L1024_cols = 0;
+
+/* GF(3) series */
 static int *L27_data_gen = NULL;
 static int *L81_data = NULL;
 static int *L243_data = NULL;
+static int *L729_data = NULL;
+static int *L2187_data = NULL;
 static size_t L27_rows = 0, L27_cols = 0;
 static size_t L81_rows = 0, L81_cols = 0;
 static size_t L243_rows = 0, L243_cols = 0;
+static size_t L729_rows = 0, L729_cols = 0;
+static size_t L2187_rows = 0, L2187_cols = 0;
 
 /* Static array entries for predefined 2-level arrays */
 #define NUM_STATIC_ARRAYS 4
@@ -186,7 +226,7 @@ static const OrthogonalArray static_arrays[] = {
 };
 
 /* Full array list including generated arrays */
-#define MAX_ARRAYS 8
+#define MAX_ARRAYS 16
 static OrthogonalArray all_arrays[MAX_ARRAYS];
 static size_t all_arrays_count = 0;
 static bool arrays_initialized = false;
@@ -203,7 +243,57 @@ static void ensure_arrays_initialized(void) {
     }
     all_arrays_count = NUM_STATIC_ARRAYS;
 
-    /* Generate L27 (replaces buggy hardcoded data) */
+    /* Generate GF(2) series: L32, L64, L128, L256, L512, L1024 */
+    L32_data = generate_power2_oa(5, &L32_rows, &L32_cols);
+    all_arrays[all_arrays_count].name = "L32";
+    all_arrays[all_arrays_count].rows = L32_rows;
+    all_arrays[all_arrays_count].cols = L32_cols;
+    all_arrays[all_arrays_count].levels = 2;
+    all_arrays[all_arrays_count].data = L32_data;
+    all_arrays_count++;
+
+    L64_data = generate_power2_oa(6, &L64_rows, &L64_cols);
+    all_arrays[all_arrays_count].name = "L64";
+    all_arrays[all_arrays_count].rows = L64_rows;
+    all_arrays[all_arrays_count].cols = L64_cols;
+    all_arrays[all_arrays_count].levels = 2;
+    all_arrays[all_arrays_count].data = L64_data;
+    all_arrays_count++;
+
+    L128_data = generate_power2_oa(7, &L128_rows, &L128_cols);
+    all_arrays[all_arrays_count].name = "L128";
+    all_arrays[all_arrays_count].rows = L128_rows;
+    all_arrays[all_arrays_count].cols = L128_cols;
+    all_arrays[all_arrays_count].levels = 2;
+    all_arrays[all_arrays_count].data = L128_data;
+    all_arrays_count++;
+
+    L256_data = generate_power2_oa(8, &L256_rows, &L256_cols);
+    all_arrays[all_arrays_count].name = "L256";
+    all_arrays[all_arrays_count].rows = L256_rows;
+    all_arrays[all_arrays_count].cols = L256_cols;
+    all_arrays[all_arrays_count].levels = 2;
+    all_arrays[all_arrays_count].data = L256_data;
+    all_arrays_count++;
+
+    L512_data = generate_power2_oa(9, &L512_rows, &L512_cols);
+    all_arrays[all_arrays_count].name = "L512";
+    all_arrays[all_arrays_count].rows = L512_rows;
+    all_arrays[all_arrays_count].cols = L512_cols;
+    all_arrays[all_arrays_count].levels = 2;
+    all_arrays[all_arrays_count].data = L512_data;
+    all_arrays_count++;
+
+    L1024_data = generate_power2_oa(10, &L1024_rows, &L1024_cols);
+    all_arrays[all_arrays_count].name = "L1024";
+    all_arrays[all_arrays_count].rows = L1024_rows;
+    all_arrays[all_arrays_count].cols = L1024_cols;
+    all_arrays[all_arrays_count].levels = 2;
+    all_arrays[all_arrays_count].data = L1024_data;
+    all_arrays_count++;
+
+    /* Generate GF(3) series: L27, L81, L243, L729, L2187 */
+    /* L27 (replaces buggy hardcoded data) */
     L27_data_gen = generate_power3_oa(3, &L27_rows, &L27_cols);
     all_arrays[all_arrays_count].name = "L27";
     all_arrays[all_arrays_count].rows = L27_rows;
@@ -212,7 +302,6 @@ static void ensure_arrays_initialized(void) {
     all_arrays[all_arrays_count].data = L27_data_gen;
     all_arrays_count++;
 
-    /* Generate L81 */
     L81_data = generate_power3_oa(4, &L81_rows, &L81_cols);
     all_arrays[all_arrays_count].name = "L81";
     all_arrays[all_arrays_count].rows = L81_rows;
@@ -221,13 +310,28 @@ static void ensure_arrays_initialized(void) {
     all_arrays[all_arrays_count].data = L81_data;
     all_arrays_count++;
 
-    /* Generate L243 */
     L243_data = generate_power3_oa(5, &L243_rows, &L243_cols);
     all_arrays[all_arrays_count].name = "L243";
     all_arrays[all_arrays_count].rows = L243_rows;
     all_arrays[all_arrays_count].cols = L243_cols;
     all_arrays[all_arrays_count].levels = 3;
     all_arrays[all_arrays_count].data = L243_data;
+    all_arrays_count++;
+
+    L729_data = generate_power3_oa(6, &L729_rows, &L729_cols);
+    all_arrays[all_arrays_count].name = "L729";
+    all_arrays[all_arrays_count].rows = L729_rows;
+    all_arrays[all_arrays_count].cols = L729_cols;
+    all_arrays[all_arrays_count].levels = 3;
+    all_arrays[all_arrays_count].data = L729_data;
+    all_arrays_count++;
+
+    L2187_data = generate_power3_oa(7, &L2187_rows, &L2187_cols);
+    all_arrays[all_arrays_count].name = "L2187";
+    all_arrays[all_arrays_count].rows = L2187_rows;
+    all_arrays[all_arrays_count].cols = L2187_cols;
+    all_arrays[all_arrays_count].levels = 3;
+    all_arrays[all_arrays_count].data = L2187_data;
     all_arrays_count++;
 
     /* Build name list */

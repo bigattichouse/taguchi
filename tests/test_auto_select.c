@@ -296,9 +296,9 @@ TEST(auto_select_with_9level_factor) {
 
 TEST(auto_select_vs_manual_specification) {
     char error[TAGUCHI_ERROR_SIZE];
-    
-    // Test auto-selection function on the same experiment definition 
-    const char *experiment_content = 
+
+    // Test auto-selection function on the same experiment definition
+    const char *experiment_content =
         "factors:\n"
         "  temp: 300F, 350F, 400F\n"
         "  time: 10min, 15min, 20min\n"
@@ -310,10 +310,211 @@ TEST(auto_select_vs_manual_specification) {
     // The auto-selected array should suggest something appropriate for the factor structure
     const char *auto_selected = taguchi_suggest_optimal_array(def, error);
     ASSERT_NOT_NULL(auto_selected);
-    
+
     // Should suggest an appropriate array for 2 factors with 3 levels each
     bool is_valid_output = (auto_selected[0] == 'L' && strlen(auto_selected) >= 2);
     ASSERT(is_valid_output);
+
+    taguchi_free_definition(def);
+}
+
+/* Tests for new higher-order arrays */
+TEST(auto_select_l32_for_6_two_level_factors) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    /* 6 two-level factors need 6 columns; L8 has 7 cols so it should be selected */
+    const char *content =
+        "factors:\n"
+        "  f1: A, B\n  f2: A, B\n  f3: A, B\n  f4: A, B\n  f5: A, B\n  f6: A, B\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    const char *recommended = taguchi_suggest_optimal_array(def, error);
+    ASSERT_NOT_NULL(recommended);
+    /* L8 has 7 cols which fits 6 factors */
+    ASSERT_STR_EQ(recommended, "L8");
+
+    taguchi_free_definition(def);
+}
+
+TEST(auto_select_l64_for_many_two_level_factors) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    /* 20 two-level factors need 20 columns; L32 has 31 cols */
+    const char *content =
+        "factors:\n"
+        "  f1: A, B\n  f2: A, B\n  f3: A, B\n  f4: A, B\n  f5: A, B\n"
+        "  f6: A, B\n  f7: A, B\n  f8: A, B\n  f9: A, B\n  f10: A, B\n"
+        "  f11: A, B\n  f12: A, B\n  f13: A, B\n  f14: A, B\n  f15: A, B\n"
+        "  f16: A, B\n  f17: A, B\n  f18: A, B\n  f19: A, B\n  f20: A, B\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    const char *recommended = taguchi_suggest_optimal_array(def, error);
+    ASSERT_NOT_NULL(recommended);
+    /* L32 has 31 cols which fits 20 factors */
+    ASSERT_STR_EQ(recommended, "L32");
+
+    taguchi_free_definition(def);
+}
+
+TEST(auto_select_l128_for_50_two_level_factors) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    /* 50 two-level factors need 50 columns; L64 has 63 cols */
+    const char *content =
+        "factors:\n"
+        "  f1: A, B\n  f2: A, B\n  f3: A, B\n  f4: A, B\n  f5: A, B\n"
+        "  f6: A, B\n  f7: A, B\n  f8: A, B\n  f9: A, B\n  f10: A, B\n"
+        "  f11: A, B\n  f12: A, B\n  f13: A, B\n  f14: A, B\n  f15: A, B\n"
+        "  f16: A, B\n  f17: A, B\n  f18: A, B\n  f19: A, B\n  f20: A, B\n"
+        "  f21: A, B\n  f22: A, B\n  f23: A, B\n  f24: A, B\n  f25: A, B\n"
+        "  f26: A, B\n  f27: A, B\n  f28: A, B\n  f29: A, B\n  f30: A, B\n"
+        "  f31: A, B\n  f32: A, B\n  f33: A, B\n  f34: A, B\n  f35: A, B\n"
+        "  f36: A, B\n  f37: A, B\n  f38: A, B\n  f39: A, B\n  f40: A, B\n"
+        "  f41: A, B\n  f42: A, B\n  f43: A, B\n  f44: A, B\n  f45: A, B\n"
+        "  f46: A, B\n  f47: A, B\n  f48: A, B\n  f49: A, B\n  f50: A, B\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    const char *recommended = taguchi_suggest_optimal_array(def, error);
+    ASSERT_NOT_NULL(recommended);
+    /* L64 has 63 cols which fits 50 factors */
+    ASSERT_STR_EQ(recommended, "L64");
+
+    taguchi_free_definition(def);
+}
+
+TEST(auto_select_l729_for_many_three_level_factors) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    /* 20 three-level factors need 20 columns in 3-level array, or 40 cols in 2-level
+       L64 has 63 cols (2-level) which fits via column pairing, so it's selected */
+    const char *content =
+        "factors:\n"
+        "  f1: A, B, C\n  f2: A, B, C\n  f3: A, B, C\n  f4: A, B, C\n  f5: A, B, C\n"
+        "  f6: A, B, C\n  f7: A, B, C\n  f8: A, B, C\n  f9: A, B, C\n  f10: A, B, C\n"
+        "  f11: A, B, C\n  f12: A, B, C\n  f13: A, B, C\n  f14: A, B, C\n  f15: A, B, C\n"
+        "  f16: A, B, C\n  f17: A, B, C\n  f18: A, B, C\n  f19: A, B, C\n  f20: A, B, C\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    const char *recommended = taguchi_suggest_optimal_array(def, error);
+    ASSERT_NOT_NULL(recommended);
+    /* L64 has 63 cols which fits 20 3-level factors via column pairing (2 cols each = 40 cols) */
+    ASSERT_STR_EQ(recommended, "L64");
+
+    taguchi_free_definition(def);
+}
+
+TEST(generation_with_l32) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    const char *content =
+        "factors:\n"
+        "  f1: A, B\n  f2: A, B\n  f3: A, B\n  f4: A, B\n  f5: A, B\n"
+        "array: L32\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    taguchi_experiment_run_t **runs = NULL;
+    size_t count = 0;
+
+    int result = taguchi_generate_runs(def, &runs, &count, error);
+    ASSERT_EQ(result, 0);
+    ASSERT_EQ(count, 32);
+
+    taguchi_free_runs(runs, count);
+    taguchi_free_definition(def);
+}
+
+TEST(generation_with_l64) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    const char *content =
+        "factors:\n"
+        "  f1: A, B\n  f2: A, B\n  f3: A, B\n  f4: A, B\n  f5: A, B\n"
+        "  f6: A, B\n  f7: A, B\n  f8: A, B\n  f9: A, B\n  f10: A, B\n"
+        "array: L64\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    taguchi_experiment_run_t **runs = NULL;
+    size_t count = 0;
+
+    int result = taguchi_generate_runs(def, &runs, &count, error);
+    ASSERT_EQ(result, 0);
+    ASSERT_EQ(count, 64);
+
+    taguchi_free_runs(runs, count);
+    taguchi_free_definition(def);
+}
+
+TEST(generation_with_l729) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    const char *content =
+        "factors:\n"
+        "  f1: A, B, C\n  f2: A, B, C\n  f3: A, B, C\n  f4: A, B, C\n  f5: A, B, C\n"
+        "  f6: A, B, C\n  f7: A, B, C\n  f8: A, B, C\n  f9: A, B, C\n  f10: A, B, C\n"
+        "array: L729\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    taguchi_experiment_run_t **runs = NULL;
+    size_t count = 0;
+
+    int result = taguchi_generate_runs(def, &runs, &count, error);
+    ASSERT_EQ(result, 0);
+    ASSERT_EQ(count, 729);
+
+    taguchi_free_runs(runs, count);
+    taguchi_free_definition(def);
+}
+
+TEST(auto_select_l729_for_100_three_level_factors) {
+    char error[TAGUCHI_ERROR_SIZE];
+
+    /* 100 three-level factors need 100 columns in 3-level array (L729 has 364)
+       But in 2-level array, each needs 2 cols = 200 cols total
+       L256 has 255 cols which fits, so it's selected (smaller than L729) */
+    const char *content =
+        "factors:\n"
+        "  f1: A, B, C\n  f2: A, B, C\n  f3: A, B, C\n  f4: A, B, C\n  f5: A, B, C\n"
+        "  f6: A, B, C\n  f7: A, B, C\n  f8: A, B, C\n  f9: A, B, C\n  f10: A, B, C\n"
+        "  f11: A, B, C\n  f12: A, B, C\n  f13: A, B, C\n  f14: A, B, C\n  f15: A, B, C\n"
+        "  f16: A, B, C\n  f17: A, B, C\n  f18: A, B, C\n  f19: A, B, C\n  f20: A, B, C\n"
+        "  f21: A, B, C\n  f22: A, B, C\n  f23: A, B, C\n  f24: A, B, C\n  f25: A, B, C\n"
+        "  f26: A, B, C\n  f27: A, B, C\n  f28: A, B, C\n  f29: A, B, C\n  f30: A, B, C\n"
+        "  f31: A, B, C\n  f32: A, B, C\n  f33: A, B, C\n  f34: A, B, C\n  f35: A, B, C\n"
+        "  f36: A, B, C\n  f37: A, B, C\n  f38: A, B, C\n  f39: A, B, C\n  f40: A, B, C\n"
+        "  f41: A, B, C\n  f42: A, B, C\n  f43: A, B, C\n  f44: A, B, C\n  f45: A, B, C\n"
+        "  f46: A, B, C\n  f47: A, B, C\n  f48: A, B, C\n  f49: A, B, C\n  f50: A, B, C\n"
+        "  f51: A, B, C\n  f52: A, B, C\n  f53: A, B, C\n  f54: A, B, C\n  f55: A, B, C\n"
+        "  f56: A, B, C\n  f57: A, B, C\n  f58: A, B, C\n  f59: A, B, C\n  f60: A, B, C\n"
+        "  f61: A, B, C\n  f62: A, B, C\n  f63: A, B, C\n  f64: A, B, C\n  f65: A, B, C\n"
+        "  f66: A, B, C\n  f67: A, B, C\n  f68: A, B, C\n  f69: A, B, C\n  f70: A, B, C\n"
+        "  f71: A, B, C\n  f72: A, B, C\n  f73: A, B, C\n  f74: A, B, C\n  f75: A, B, C\n"
+        "  f76: A, B, C\n  f77: A, B, C\n  f78: A, B, C\n  f79: A, B, C\n  f80: A, B, C\n"
+        "  f81: A, B, C\n  f82: A, B, C\n  f83: A, B, C\n  f84: A, B, C\n  f85: A, B, C\n"
+        "  f86: A, B, C\n  f87: A, B, C\n  f88: A, B, C\n  f89: A, B, C\n  f90: A, B, C\n"
+        "  f91: A, B, C\n  f92: A, B, C\n  f93: A, B, C\n  f94: A, B, C\n  f95: A, B, C\n"
+        "  f96: A, B, C\n  f97: A, B, C\n  f98: A, B, C\n  f99: A, B, C\n  f100: A, B, C\n";
+
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    ASSERT_NOT_NULL(def);
+
+    const char *recommended = taguchi_suggest_optimal_array(def, error);
+    ASSERT_NOT_NULL(recommended);
+    /* L256 has 255 cols which fits 100 3-level factors via column pairing (2 cols each = 200 cols) */
+    ASSERT_STR_EQ(recommended, "L256");
 
     taguchi_free_definition(def);
 }
