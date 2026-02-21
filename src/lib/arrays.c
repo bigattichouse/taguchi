@@ -189,6 +189,14 @@ static int *generate_power3_oa(int n, size_t *rows_out, size_t *cols_out) {
     return generate_power_oa(3, n, rows_out, cols_out);
 }
 
+/*
+ * GF(5) orthogonal array generator for L(5^n) arrays.
+ * For n dimensions: rows = 5^n, cols = (5^n - 1) / 4
+ */
+static int *generate_power5_oa(int n, size_t *rows_out, size_t *cols_out) {
+    return generate_power_oa(5, n, rows_out, cols_out);
+}
+
 /* Generated array data (initialized lazily) */
 /* GF(2) series */
 static int *L32_data = NULL;
@@ -216,6 +224,16 @@ static size_t L243_rows = 0, L243_cols = 0;
 static size_t L729_rows = 0, L729_cols = 0;
 static size_t L2187_rows = 0, L2187_cols = 0;
 
+/* GF(5) series */
+static int *L25_data = NULL;
+static int *L125_data = NULL;
+static int *L625_data = NULL;
+static int *L3125_data = NULL;
+static size_t L25_rows = 0, L25_cols = 0;
+static size_t L125_rows = 0, L125_cols = 0;
+static size_t L625_rows = 0, L625_cols = 0;
+static size_t L3125_rows = 0, L3125_cols = 0;
+
 /* Static array entries for predefined 2-level arrays */
 #define NUM_STATIC_ARRAYS 4
 static const OrthogonalArray static_arrays[] = {
@@ -226,7 +244,7 @@ static const OrthogonalArray static_arrays[] = {
 };
 
 /* Full array list including generated arrays */
-#define MAX_ARRAYS 16
+#define MAX_ARRAYS 20
 static OrthogonalArray all_arrays[MAX_ARRAYS];
 static size_t all_arrays_count = 0;
 static bool arrays_initialized = false;
@@ -334,6 +352,39 @@ static void ensure_arrays_initialized(void) {
     all_arrays[all_arrays_count].data = L2187_data;
     all_arrays_count++;
 
+    /* Generate GF(5) series: L25, L125, L625, L3125 */
+    L25_data = generate_power5_oa(2, &L25_rows, &L25_cols);
+    all_arrays[all_arrays_count].name = "L25";
+    all_arrays[all_arrays_count].rows = L25_rows;
+    all_arrays[all_arrays_count].cols = L25_cols;
+    all_arrays[all_arrays_count].levels = 5;
+    all_arrays[all_arrays_count].data = L25_data;
+    all_arrays_count++;
+
+    L125_data = generate_power5_oa(3, &L125_rows, &L125_cols);
+    all_arrays[all_arrays_count].name = "L125";
+    all_arrays[all_arrays_count].rows = L125_rows;
+    all_arrays[all_arrays_count].cols = L125_cols;
+    all_arrays[all_arrays_count].levels = 5;
+    all_arrays[all_arrays_count].data = L125_data;
+    all_arrays_count++;
+
+    L625_data = generate_power5_oa(4, &L625_rows, &L625_cols);
+    all_arrays[all_arrays_count].name = "L625";
+    all_arrays[all_arrays_count].rows = L625_rows;
+    all_arrays[all_arrays_count].cols = L625_cols;
+    all_arrays[all_arrays_count].levels = 5;
+    all_arrays[all_arrays_count].data = L625_data;
+    all_arrays_count++;
+
+    L3125_data = generate_power5_oa(5, &L3125_rows, &L3125_cols);
+    all_arrays[all_arrays_count].name = "L3125";
+    all_arrays[all_arrays_count].rows = L3125_rows;
+    all_arrays[all_arrays_count].cols = L3125_cols;
+    all_arrays[all_arrays_count].levels = 5;
+    all_arrays[all_arrays_count].data = L3125_data;
+    all_arrays_count++;
+
     /* Build name list */
     for (size_t i = 0; i < all_arrays_count; i++) {
         array_names[i] = all_arrays[i].name;
@@ -387,15 +438,6 @@ size_t total_columns_needed(const ExperimentDef *def, size_t base_levels) {
     return total;
 }
 
-/* Helper function to determine if an array can accommodate the factors */
-static bool can_accommodate_factors(const OrthogonalArray *array, const ExperimentDef *def) {
-    if (!array || !def) return false;
-
-    /* Check total columns needed (with column pairing) against available columns */
-    size_t needed = total_columns_needed(def, array->levels);
-    return needed <= array->cols;
-}
-
 /* Get all array structures for internal use */
 const OrthogonalArray *get_all_arrays(size_t *count_out) {
     ensure_arrays_initialized();
@@ -416,26 +458,102 @@ const char *suggest_optimal_array(const ExperimentDef *def, char *error_buf) {
 
     ensure_arrays_initialized();
 
-    /* Find the smallest array that can accommodate all factors with column pairing */
-    for (size_t i = 0; i < all_arrays_count; i++) {
-        const OrthogonalArray *array = &all_arrays[i];
-
-        if (can_accommodate_factors(array, def)) {
-            return array->name;
-        }
-    }
-
-    /* If no array fits, return NULL with error message */
+    /* Determine the dominant level count in the factors */
     size_t max_levels = 0;
     for (size_t i = 0; i < def->factor_count; i++) {
         if (def->factors[i].level_count > max_levels) {
             max_levels = def->factors[i].level_count;
         }
     }
+
+    /* Find all arrays that can accommodate the factors.
+     * Priority: 1) Exact level match with any margin, 2) Good margin (50-200%),
+     * but avoid excessively large arrays (> 4x minimum runs) unless necessary. */
+    const OrthogonalArray *best_fit = NULL;
+    const OrthogonalArray *smallest_fit = NULL;
+    const OrthogonalArray *best_exact_match = NULL;  /* Best exact level match */
+    size_t smallest_fit_rows = 0;
+    size_t best_margin_pct = 0;
+
+    for (size_t i = 0; i < all_arrays_count; i++) {
+        const OrthogonalArray *array = &all_arrays[i];
+        size_t needed = total_columns_needed(def, array->levels);
+
+        if (needed > array->cols) {
+            continue;
+        }
+
+        /* Track smallest fit as fallback */
+        if (smallest_fit == NULL || array->rows < smallest_fit_rows) {
+            smallest_fit = array;
+            smallest_fit_rows = array->rows;
+        }
+
+        /* Check if array base level matches factor levels (exact match) */
+        int is_exact_match = (array->levels == max_levels) ? 1 : 0;
+
+        /* Calculate capacity margin percentage */
+        size_t margin_pct = (array->cols >= needed) ? ((array->cols - needed) * 100 / needed) : 0;
+
+        /* Track best exact level match: prefer larger ones with good margin (50-200%) */
+        if (is_exact_match) {
+            int margin_good = (margin_pct >= 50 && margin_pct <= 200) ? 1 : 0;
+            int current_margin_good = 0;
+            if (best_exact_match != NULL) {
+                size_t current_needed = total_columns_needed(def, best_exact_match->levels);
+                size_t current_margin = (best_exact_match->cols >= current_needed) ? 
+                    ((best_exact_match->cols - current_needed) * 100 / current_needed) : 0;
+                current_margin_good = (current_margin >= 50 && current_margin <= 200) ? 1 : 0;
+            }
+            
+            if (best_exact_match == NULL) {
+                best_exact_match = array;
+            } else if (margin_good && !current_margin_good) {
+                best_exact_match = array;  /* New has good margin, old doesn't */
+            } else if (margin_good && current_margin_good && array->rows > best_exact_match->rows) {
+                best_exact_match = array;  /* Both have good margin, prefer larger */
+            } else if (!margin_good && !current_margin_good && array->rows < best_exact_match->rows) {
+                best_exact_match = array;  /* Neither has good margin, prefer smaller */
+            }
+        }
+
+        /* Skip if this array is more than 4x the smallest (too expensive) */
+        if (smallest_fit_rows > 0 && array->rows > smallest_fit_rows * 4) {
+            continue;
+        }
+
+        /* Track best margin fit */
+        if (margin_pct >= 50 && margin_pct <= 200) {
+            if (best_fit == NULL || margin_pct > best_margin_pct) {
+                best_fit = array;
+                best_margin_pct = margin_pct;
+            }
+        }
+    }
+
+    /* Prefer exact level match if available, otherwise use best margin fit,
+     * or fall back to smallest fit */
+    if (best_exact_match != NULL) {
+        return best_exact_match->name;
+    }
+    if (best_fit != NULL) {
+        return best_fit->name;
+    }
+    if (smallest_fit != NULL) {
+        return smallest_fit->name;
+    }
+
+    /* If no array fits, return NULL with error message */
+    size_t max_lvls = 0;
+    for (size_t i = 0; i < def->factor_count; i++) {
+        if (def->factors[i].level_count > max_lvls) {
+            max_lvls = def->factors[i].level_count;
+        }
+    }
     if (error_buf) {
         set_error(error_buf, "No suitable array found for %zu factors (max %zu levels each). "
                 "Try reducing factor count or level count per factor.",
-                def->factor_count, max_levels);
+                def->factor_count, max_lvls);
     }
     return NULL;
 }

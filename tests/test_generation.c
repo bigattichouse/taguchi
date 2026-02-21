@@ -542,11 +542,8 @@ TEST(auto_select_l27_for_5_3level_factors) {
 
     const char *recommended = taguchi_suggest_optimal_array(def, error);
     ASSERT_NOT_NULL(recommended);
-    /* L9 has 4 cols (too few), L16 has 15 cols at 2 levels (5*2=10 cols needed, fits in 15)
-       but L16 is 16 runs. Wait - actually L16 comes before L27 in iteration.
-       5 three-level factors in base-2: each needs 2 cols = 10 total. L16 has 15 >= 10.
-       L16 (16 runs) is smaller than L27 (27 runs), so L16 gets picked. */
-    ASSERT_STR_EQ(recommended, "L16");
+    /* L27 is exact 3-level match with 160% margin */
+    ASSERT_STR_EQ(recommended, "L27");
 
     taguchi_free_definition(def);
 }

@@ -23,7 +23,7 @@ TEST(get_array_null) {
 TEST(list_arrays_valid) {
     const char **names = list_array_names();
     ASSERT_NOT_NULL(names);
-    /* GF(2) series first, then GF(3) series */
+    /* GF(2) series, GF(3) series, GF(5) series */
     ASSERT_STR_EQ(names[0], "L4");
     ASSERT_STR_EQ(names[1], "L8");
     ASSERT_STR_EQ(names[2], "L9");
@@ -39,7 +39,11 @@ TEST(list_arrays_valid) {
     ASSERT_STR_EQ(names[12], "L243");
     ASSERT_STR_EQ(names[13], "L729");
     ASSERT_STR_EQ(names[14], "L2187");
-    ASSERT_NULL(names[15]);
+    ASSERT_STR_EQ(names[15], "L25");
+    ASSERT_STR_EQ(names[16], "L125");
+    ASSERT_STR_EQ(names[17], "L625");
+    ASSERT_STR_EQ(names[18], "L3125");
+    ASSERT_NULL(names[19]);
 }
 
 // Helper function to check the balance property of an orthogonal array
@@ -242,6 +246,75 @@ TEST(l2187_values_in_range) {
         for (size_t c = 0; c < array->cols; c++) {
             int val = array->data[r * array->cols + c];
             ASSERT(val >= 0 && val < 3);
+        }
+    }
+}
+
+/* Tests for GF(5) series */
+TEST(get_array_l25) {
+    const OrthogonalArray *array = get_array("L25");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L25");
+    ASSERT_EQ(array->rows, 25);
+    ASSERT_EQ(array->cols, 6);
+    ASSERT_EQ(array->levels, 5);
+}
+
+TEST(get_array_l125) {
+    const OrthogonalArray *array = get_array("L125");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L125");
+    ASSERT_EQ(array->rows, 125);
+    ASSERT_EQ(array->cols, 31);
+    ASSERT_EQ(array->levels, 5);
+}
+
+TEST(get_array_l625) {
+    const OrthogonalArray *array = get_array("L625");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L625");
+    ASSERT_EQ(array->rows, 625);
+    ASSERT_EQ(array->cols, 156);
+    ASSERT_EQ(array->levels, 5);
+}
+
+TEST(get_array_l3125) {
+    const OrthogonalArray *array = get_array("L3125");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L3125");
+    ASSERT_EQ(array->rows, 3125);
+    ASSERT_EQ(array->cols, 781);
+    ASSERT_EQ(array->levels, 5);
+}
+
+TEST(l25_values_in_range) {
+    const OrthogonalArray *array = get_array("L25");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        for (size_t c = 0; c < array->cols; c++) {
+            int val = array->data[r * array->cols + c];
+            ASSERT(val >= 0 && val < 5);
+        }
+    }
+}
+
+TEST(l125_spot_check) {
+    const OrthogonalArray *array = get_array("L125");
+    ASSERT_NOT_NULL(array);
+    ASSERT_EQ(array->rows, 125);
+    ASSERT_EQ(array->cols, 31);
+    
+    /* Spot check first column pair */
+    size_t counts[5][5] = {{0}};
+    for (size_t r = 0; r < array->rows; r++) {
+        int v1 = array->data[r * array->cols];
+        int v2 = array->data[r * array->cols + 1];
+        counts[v1][v2]++;
+    }
+    /* Each combination should appear rows/25 = 5 times */
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            ASSERT_EQ(counts[i][j], 5);
         }
     }
 }

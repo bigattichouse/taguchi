@@ -10,12 +10,92 @@ static const OrthogonalArray *get_suggested_array_for_factors(const ExperimentDe
     size_t array_count;
     const OrthogonalArray *all_arrays = get_all_arrays(&array_count);
 
+    /* Determine the dominant level count in the factors */
+    size_t dominant_levels = 2;
+    size_t max_levels = 0;
+    for (size_t i = 0; i < def->factor_count; i++) {
+        if (def->factors[i].level_count > max_levels) {
+            max_levels = def->factors[i].level_count;
+        }
+    }
+    /* Prefer arrays with base level >= max factor levels */
+    dominant_levels = max_levels;
+
+    /* Find all arrays that can accommodate the factors.
+     * Priority: 1) Exact level match with any margin, 2) Good margin (50-200%),
+     * but avoid excessively large arrays (> 4x minimum runs) unless necessary. */
+    const OrthogonalArray *best_fit = NULL;
+    const OrthogonalArray *smallest_fit = NULL;
+    const OrthogonalArray *best_exact_match = NULL;  /* Best exact level match */
+    size_t smallest_fit_rows = 0;
+    size_t best_margin_pct = 0;
+
     for (size_t i = 0; i < array_count; i++) {
         const OrthogonalArray *array = &all_arrays[i];
         size_t needed = total_columns_needed(def, array->levels);
-        if (needed <= array->cols) {
-            return array;
+        
+        if (needed > array->cols) {
+            continue;
         }
+
+        /* Track smallest fit as fallback */
+        if (smallest_fit == NULL || array->rows < smallest_fit_rows) {
+            smallest_fit = array;
+            smallest_fit_rows = array->rows;
+        }
+
+        /* Check if array base level matches factor levels (exact match) */
+        int is_exact_match = (array->levels == dominant_levels) ? 1 : 0;
+
+        /* Calculate capacity margin percentage */
+        size_t margin_pct = (array->cols >= needed) ? ((array->cols - needed) * 100 / needed) : 0;
+
+        /* Track best exact level match: prefer larger ones with good margin (50-200%) */
+        if (is_exact_match) {
+            int margin_good = (margin_pct >= 50 && margin_pct <= 200) ? 1 : 0;
+            int current_margin_good = 0;
+            if (best_exact_match != NULL) {
+                size_t current_needed = total_columns_needed(def, best_exact_match->levels);
+                size_t current_margin = (best_exact_match->cols >= current_needed) ? 
+                    ((best_exact_match->cols - current_needed) * 100 / current_needed) : 0;
+                current_margin_good = (current_margin >= 50 && current_margin <= 200) ? 1 : 0;
+            }
+            
+            if (best_exact_match == NULL) {
+                best_exact_match = array;
+            } else if (margin_good && !current_margin_good) {
+                best_exact_match = array;  /* New has good margin, old doesn't */
+            } else if (margin_good && current_margin_good && array->rows > best_exact_match->rows) {
+                best_exact_match = array;  /* Both have good margin, prefer larger */
+            } else if (!margin_good && !current_margin_good && array->rows < best_exact_match->rows) {
+                best_exact_match = array;  /* Neither has good margin, prefer smaller */
+            }
+        }
+
+        /* Skip if this array is more than 4x the smallest (too expensive) */
+        if (smallest_fit_rows > 0 && array->rows > smallest_fit_rows * 4) {
+            continue;
+        }
+
+        /* Track best margin fit */
+        if (margin_pct >= 50 && margin_pct <= 200) {
+            if (best_fit == NULL || margin_pct > best_margin_pct) {
+                best_fit = array;
+                best_margin_pct = margin_pct;
+            }
+        }
+    }
+
+    /* Prefer exact level match if available, otherwise use best margin fit,
+     * or fall back to smallest fit */
+    if (best_exact_match != NULL) {
+        return best_exact_match;
+    }
+    if (best_fit != NULL) {
+        return best_fit;
+    }
+    if (smallest_fit != NULL) {
+        return smallest_fit;
     }
 
     if (error_buf) {

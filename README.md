@@ -37,9 +37,10 @@ This design ensures that each factor's levels are evenly distributed and balance
 - **Orthogonal Array Support**: 
   - GF(2) series: L4, L8, L16, L32, L64, L128, L256, L512, L1024 (2-level)
   - GF(3) series: L9, L27, L81, L243, L729, L2187 (3-level)
+  - GF(5) series: L25, L125, L625, L3125 (5-level)
+- **Smart Auto-Selection**: Prefers arrays with 50-200% capacity margin for better statistical power, with exact level matching prioritized
 - **Column Pairing**: Multi-level factors (4-27 levels) via automatic column pairing/tripling
 - **Mixed-Level Support**: Factors with different level counts in the same experiment
-- **Auto Array Selection**: Automatically picks the smallest suitable array when not specified
 - **Main Effects Analysis**: Calculate factor significance, level means, and optimal configurations
 - **YAML-like Configuration**: Human-readable `.tgu` experiment definition files
 - **JSON Serialization**: Output for language bindings and external tools

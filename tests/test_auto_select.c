@@ -276,7 +276,8 @@ TEST(peltier_style_experiment) {
 TEST(auto_select_with_9level_factor) {
     char error[TAGUCHI_ERROR_SIZE];
 
-    /* Auto-selection should pick L81 for 9-level factors */
+    /* Auto-selection picks L16 for mixed 9-level and 3-level factors
+       L16 has 150% margin which is in the preferred range */
     const char *content =
         "factors:\n"
         "  n_stages: 1, 2, 3, 4, 5, 6, 7, 8, 9\n"
@@ -287,9 +288,8 @@ TEST(auto_select_with_9level_factor) {
 
     const char *recommended = taguchi_suggest_optimal_array(def, error);
     ASSERT_NOT_NULL(recommended);
-    /* L8 (2-level, 7 cols) can fit this: 9-level needs 4 cols, 3-level needs 2 = 6 total */
-    /* L8 is smaller than L9 so it gets picked first */
-    ASSERT_STR_EQ(recommended, "L8");
+    /* L16 has 150% margin which is in preferred range */
+    ASSERT_STR_EQ(recommended, "L16");
 
     taguchi_free_definition(def);
 }
@@ -322,7 +322,8 @@ TEST(auto_select_vs_manual_specification) {
 TEST(auto_select_l32_for_6_two_level_factors) {
     char error[TAGUCHI_ERROR_SIZE];
 
-    /* 6 two-level factors need 6 columns; L8 has 7 cols so it should be selected */
+    /* 6 two-level factors need 6 columns; L8 has 7 cols (margin 16%)
+       L16 has 15 cols (margin 150%) - prefer L16 with good margin */
     const char *content =
         "factors:\n"
         "  f1: A, B\n  f2: A, B\n  f3: A, B\n  f4: A, B\n  f5: A, B\n  f6: A, B\n";
@@ -332,8 +333,8 @@ TEST(auto_select_l32_for_6_two_level_factors) {
 
     const char *recommended = taguchi_suggest_optimal_array(def, error);
     ASSERT_NOT_NULL(recommended);
-    /* L8 has 7 cols which fits 6 factors */
-    ASSERT_STR_EQ(recommended, "L8");
+    /* L16 has 15 cols, margin = 150% which is in good range */
+    ASSERT_STR_EQ(recommended, "L16");
 
     taguchi_free_definition(def);
 }
@@ -382,8 +383,8 @@ TEST(auto_select_l128_for_50_two_level_factors) {
 
     const char *recommended = taguchi_suggest_optimal_array(def, error);
     ASSERT_NOT_NULL(recommended);
-    /* L64 has 63 cols which fits 50 factors */
-    ASSERT_STR_EQ(recommended, "L64");
+    /* L128 has 127 cols, margin = 154% which is in preferred range */
+    ASSERT_STR_EQ(recommended, "L128");
 
     taguchi_free_definition(def);
 }
@@ -405,8 +406,8 @@ TEST(auto_select_l729_for_many_three_level_factors) {
 
     const char *recommended = taguchi_suggest_optimal_array(def, error);
     ASSERT_NOT_NULL(recommended);
-    /* L64 has 63 cols which fits 20 3-level factors via column pairing (2 cols each = 40 cols) */
-    ASSERT_STR_EQ(recommended, "L64");
+    /* L81 is exact 3-level match with 100% margin */
+    ASSERT_STR_EQ(recommended, "L81");
 
     taguchi_free_definition(def);
 }
@@ -513,8 +514,8 @@ TEST(auto_select_l729_for_100_three_level_factors) {
 
     const char *recommended = taguchi_suggest_optimal_array(def, error);
     ASSERT_NOT_NULL(recommended);
-    /* L256 has 255 cols which fits 100 3-level factors via column pairing (2 cols each = 200 cols) */
-    ASSERT_STR_EQ(recommended, "L256");
+    /* L243 is exact 3-level match (121 cols for 100 factors) */
+    ASSERT_STR_EQ(recommended, "L243");
 
     taguchi_free_definition(def);
 }
