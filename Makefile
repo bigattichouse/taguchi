@@ -17,27 +17,33 @@ LIB_OBJECTS = $(LIB_SOURCES:$(LIB_DIR)/%.c=$(BUILD_DIR)/lib/%.o)
 CLI_SOURCES = $(wildcard $(CLI_DIR)/*.c)
 CLI_OBJECTS = $(CLI_SOURCES:$(CLI_DIR)/%.c=$(BUILD_DIR)/cli/%.o)
 
-# Test sources
-TEST_SOURCES = $(wildcard $(TEST_DIR)/*.c)
+# Test sources (excluding integration test which has its own main)
+TEST_SOURCES = $(filter-out $(TEST_DIR)/test_integration.c,$(wildcard $(TEST_DIR)/*.c))
 TEST_OBJECTS = $(TEST_SOURCES:$(TEST_DIR)/%.c=$(BUILD_DIR)/test/%.o)
 
-# Targets
-SHARED_LIB = libtaguchi.so
-STATIC_LIB = libtaguchi.a
-CLI_TARGET = taguchi
-TEST_TARGET = $(BUILD_DIR)/test_runner
+# Integration test (standalone with its own main)
+INTEGRATION_TEST_SRC = $(TEST_DIR)/test_integration.c
+INTEGRATION_TEST_OBJ = $(BUILD_DIR)/test/test_integration.o
+INTEGRATION_TEST_TARGET = $(BUILD_DIR)/test/integration_test
+
+# Targets (platform-specific defaults set below)
+TEST_TARGET = $(BUILD_DIR)/test/test_runner
 
 # Platform-specific library extension
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-    SHARED_LIB = libtaguchi.dylib
-    SHARED_FLAGS = -dynamiclib -install_name @rpath/$(SHARED_LIB)
+    SHARED_LIB_BASE = libtaguchi.dylib
+    SHARED_FLAGS = -dynamiclib -install_name @rpath/$(SHARED_LIB_BASE)
 else ifeq ($(OS),Windows_NT)
-    SHARED_LIB = taguchi.dll
+    SHARED_LIB_BASE = taguchi.dll
     SHARED_FLAGS = -shared
 else
-    SHARED_FLAGS = -shared -Wl,-soname,$(SHARED_LIB)
+    SHARED_LIB_BASE = libtaguchi.so
+    SHARED_FLAGS = -shared -Wl,-soname,$(SHARED_LIB_BASE)
 endif
+SHARED_LIB ?= $(BUILD_DIR)/$(SHARED_LIB_BASE)
+STATIC_LIB ?= $(BUILD_DIR)/libtaguchi.a
+CLI_TARGET ?= $(BUILD_DIR)/taguchi
 
 .PHONY: all lib cli test check install clean
 
@@ -59,23 +65,28 @@ $(BUILD_DIR)/lib/%.o: $(LIB_DIR)/%.c | $(BUILD_DIR)/lib
 cli: $(CLI_TARGET)
 
 $(CLI_TARGET): $(CLI_OBJECTS) $(SHARED_LIB)
-	$(CC) $(CLI_OBJECTS) -L. -ltaguchi -o $@ $(LDFLAGS)
+	$(CC) $(CLI_OBJECTS) -L$(BUILD_DIR) -ltaguchi -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/cli/%.o: $(CLI_DIR)/%.c | $(BUILD_DIR)/cli
 	$(CC) $(CFLAGS) -I. -I$(INCLUDE_DIR) -I$(LIB_DIR) -c $< -o $@
 
 # Build tests
-test: $(TEST_TARGET)
-	LD_LIBRARY_PATH=. ./$(TEST_TARGET)
+test: $(TEST_TARGET) $(INTEGRATION_TEST_TARGET)
+	LD_LIBRARY_PATH=$(BUILD_DIR) ./$(TEST_TARGET)
+	@echo "Running integration test..."
+	LD_LIBRARY_PATH=$(BUILD_DIR) ./$(INTEGRATION_TEST_TARGET)
 	@if command -v valgrind >/dev/null 2>&1; then \
 		echo "Running valgrind..."; \
-		LD_LIBRARY_PATH=. valgrind --leak-check=full --error-exitcode=1 ./$(TEST_TARGET); \
+		LD_LIBRARY_PATH=$(BUILD_DIR) valgrind --leak-check=full --error-exitcode=1 ./$(TEST_TARGET); \
 	else \
 		echo "Warning: valgrind not found, skipping memory check."; \
 	fi
 
 $(TEST_TARGET): $(TEST_OBJECTS) $(LIB_OBJECTS)
 	$(CC) $(TEST_OBJECTS) $(LIB_OBJECTS) -o $@ $(LDFLAGS)
+
+$(INTEGRATION_TEST_TARGET): $(INTEGRATION_TEST_OBJ) $(LIB_OBJECTS)
+	$(CC) $(INTEGRATION_TEST_OBJ) $(LIB_OBJECTS) -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/test/%.o: $(TEST_DIR)/%.c | $(BUILD_DIR)/test
 	$(CC) $(CFLAGS) -I. -I$(INCLUDE_DIR) -c $< -o $@
@@ -90,29 +101,32 @@ $(BUILD_DIR)/lib $(BUILD_DIR)/cli $(BUILD_DIR)/test:
 	mkdir -p $@
 
 # Installation
-PREFIX = /usr/local
+PREFIX ?= /usr/local
 LIBDIR = $(PREFIX)/lib
 INCDIR = $(PREFIX)/include
 BINDIR = $(PREFIX)/bin
 
 install: lib cli
 	install -d $(LIBDIR) $(INCDIR) $(BINDIR)
-	install -m 755 $(SHARED_LIB) $(LIBDIR)/
+	install -m 755 $(SHARED_LIB) $(LIBDIR)/$(SHARED_LIB_BASE)
 	install -m 644 $(STATIC_LIB) $(LIBDIR)/
 	install -m 644 $(INCLUDE_DIR)/taguchi.h $(INCDIR)/
 	install -m 755 $(CLI_TARGET) $(BINDIR)/
 	@if command -v ldconfig >/dev/null 2>&1; then ldconfig; fi
 
+# Reinstall (uninstall then install)
+reinstall: uninstall install
+
 # Uninstall
 uninstall:
-	rm -f $(LIBDIR)/$(SHARED_LIB)
-	rm -f $(LIBDIR)/$(STATIC_LIB)
+	rm -f $(LIBDIR)/$(SHARED_LIB_BASE)
+	rm -f $(LIBDIR)/libtaguchi.a
 	rm -f $(INCDIR)/taguchi.h
-	rm -f $(BINDIR)/$(CLI_TARGET)
+	rm -f $(BINDIR)/taguchi
 
 # Clean
 clean:
-	rm -rf $(BUILD_DIR) $(SHARED_LIB) $(STATIC_LIB) $(CLI_TARGET)
+	rm -rf $(BUILD_DIR)
 
 # Python bindings
 .PHONY: python-install python-test

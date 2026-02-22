@@ -2,6 +2,19 @@
 
 All notable changes to the Taguchi Array Tool project.
 
+## [Unreleased]
+### Changed
+- **Project Structure**: Reorganized for cleaner separation of concerns
+  - Moved all test files to `tests/` directory (including `test_integration.c`)
+  - Moved documentation summaries to `docs/` directory
+  - All build artifacts (objects, libraries, binaries) now in `build/`
+  - Added `make install` and `make reinstall` targets for system installation
+
+### Added
+- `make install PREFIX=<path>` - Install library, headers, and CLI binary
+- `make reinstall` - Uninstall then reinstall (useful for updates)
+- `make uninstall` - Remove installed files
+
 ## [v1.1.0] - 2026-02-15
 ### Added
 - **Large Orthogonal Arrays**: L81 (81 runs, 40 columns) and L243 (243 runs, 121 columns) via GF(3) algorithmic generation
