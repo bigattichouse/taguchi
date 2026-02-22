@@ -2,7 +2,7 @@
 
 All notable changes to the Taguchi Array Tool project.
 
-## [Unreleased]
+## [v1.2.0] - 2026-02-22
 ### Changed
 - **Project Structure**: Reorganized for cleaner separation of concerns
   - Moved all test files to `tests/` directory (including `test_integration.c`)
