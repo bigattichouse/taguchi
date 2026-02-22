@@ -303,5 +303,38 @@ make test
 make check
 ```
 
+### Installation
+```bash
+# Install to system (requires root)
+sudo make install
+
+# Install to custom prefix
+make install PREFIX=$HOME/.local
+
+# Reinstall (uninstall then install)
+sudo make reinstall
+
+# Uninstall
+sudo make uninstall
+```
+
+After installation:
+- Library: `/usr/local/lib/libtaguchi.so` and `libtaguchi.a`
+- Header: `/usr/local/include/taguchi.h`
+- CLI: `/usr/local/bin/taguchi`
+
+### Project Structure
+```
+taguchi/
+├── build/          # All build artifacts (objects, libs, binaries)
+├── docs/           # Documentation and reference materials
+├── examples/       # Example code and usage patterns
+├── include/        # Public API headers
+├── src/
+│   ├── lib/        # Core library implementation
+│   └── cli/        # Command-line interface
+└── tests/          # Unit and integration tests
+```
+
 ## License
 Public Domain (CC0) - no restrictions on use, modification, or distribution.
