@@ -9,6 +9,9 @@
 #include <limits.h>
 #include "include/taguchi.h"
 
+/* Forward declaration — defined below after parse_csv_results */
+static char *read_file_dynamic(const char *filename);
+
 static void print_usage(const char *program_name) {
     fprintf(stderr, 
         "Usage: %s [OPTIONS] <command> [ARGS]\n"
@@ -75,31 +78,18 @@ static int cmd_generate(int argc, char *argv[]) {
     const char *filename = argv[1];
     
     // Read the file
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        perror("Error opening file");
-        return 1;
-    }
-    
-    char content[4096];
-    size_t bytes_read = fread(content, 1, sizeof(content) - 1, file);
-    fclose(file);
-    
-    if (bytes_read >= sizeof(content) - 1) {
-        fprintf(stderr, "Error: file too large\n");
-        return 1;
-    }
-    
-    content[bytes_read] = '\0';
-    
+    char *content = read_file_dynamic(filename);
+    if (!content) return 1;
+
     // Parse the definition
     char error[TAGUCHI_ERROR_SIZE];
     taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    free(content);
     if (!def) {
         fprintf(stderr, "Error parsing file %s: %s\n", filename, error);
         return 1;
     }
-    
+
     // Generate runs
     taguchi_experiment_run_t **runs = NULL;
     size_t count = 0;
@@ -149,26 +139,13 @@ static int cmd_validate(int argc, char *argv[]) {
     const char *filename = argv[1];
     
     // Read the file
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        perror("Error opening file");
-        return 1;
-    }
-    
-    char content[4096];
-    size_t bytes_read = fread(content, 1, sizeof(content) - 1, file);
-    fclose(file);
-    
-    if (bytes_read >= sizeof(content) - 1) {
-        fprintf(stderr, "Error: file too large\n");
-        return 1;
-    }
-    
-    content[bytes_read] = '\0';
-    
+    char *content = read_file_dynamic(filename);
+    if (!content) return 1;
+
     // Parse the definition
     char error[TAGUCHI_ERROR_SIZE];
     taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    free(content);
     if (!def) {
         fprintf(stderr, "Error: Invalid .tgu file %s: %s\n", filename, error);
         return 1;
@@ -199,26 +176,13 @@ static int cmd_run(int argc, char *argv[]) {
     const char *script = argv[2];
     
     // Read the .tgu file
-    FILE *file = fopen(tgu_file, "r");
-    if (!file) {
-        perror("Error opening .tgu file");
-        return 1;
-    }
-    
-    char content[4096];
-    size_t bytes_read = fread(content, 1, sizeof(content) - 1, file);
-    fclose(file);
-    
-    if (bytes_read >= sizeof(content) - 1) {
-        fprintf(stderr, "Error: .tgu file too large\n");
-        return 1;
-    }
-    
-    content[bytes_read] = '\0';
-    
+    char *content = read_file_dynamic(tgu_file);
+    if (!content) return 1;
+
     // Parse the definition
     char error[TAGUCHI_ERROR_SIZE];
     taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    free(content);
     if (!def) {
         fprintf(stderr, "Error parsing .tgu file %s: %s\n", tgu_file, error);
         return 1;
@@ -244,9 +208,9 @@ static int cmd_run(int argc, char *argv[]) {
             // Child process: set environment variables and run the script
 
             // Set run ID as environment variable
-            char run_id_env[64];
-            snprintf(run_id_env, sizeof(run_id_env), "TAGUCHI_RUN_ID=%zu", taguchi_run_get_id(runs[i]));
-            putenv(strdup(run_id_env));
+            char run_id_str[64];
+            snprintf(run_id_str, sizeof(run_id_str), "%zu", taguchi_run_get_id(runs[i]));
+            setenv("TAGUCHI_RUN_ID", run_id_str, 1);
 
             // Set environment variables for each factor-value pair
             size_t factor_count = taguchi_run_get_factor_count(runs[i]);
@@ -255,10 +219,18 @@ static int cmd_run(int argc, char *argv[]) {
                 const char *factor_value = taguchi_run_get_value(runs[i], factor_name);
 
                 if (factor_name && factor_value) {
-                    // Set environment variable (uppercase name with "TAGUCHI_" prefix)
-                    char env_var[256];
-                    snprintf(env_var, sizeof(env_var), "TAGUCHI_%s=%s", factor_name, factor_value);
-                    putenv(strdup(env_var));
+                    /* Reject factor names containing '=' — would corrupt the env block */
+                    if (strchr(factor_name, '=') != NULL) {
+                        fprintf(stderr, "Error: factor name '%s' contains invalid character '='\n", factor_name);
+                        exit(1);
+                    }
+                    char env_name[256];
+                    int nw = snprintf(env_name, sizeof(env_name), "TAGUCHI_%s", factor_name);
+                    if (nw < 0 || nw >= (int)sizeof(env_name)) {
+                        fprintf(stderr, "Error: factor name too long for environment variable\n");
+                        exit(1);
+                    }
+                    setenv(env_name, factor_value, 1);
                 }
             }
 
@@ -296,21 +268,35 @@ static int cmd_run(int argc, char *argv[]) {
     return 0;
 }
 
-/* Helper: read a file into a stack buffer */
-static int read_file_content(const char *filename, char *buf, size_t buf_size) {
+/* Helper: read a file into a dynamically allocated buffer. Caller must free(). */
+static char *read_file_dynamic(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
         perror("Error opening file");
-        return -1;
+        return NULL;
     }
-    size_t bytes_read = fread(buf, 1, buf_size - 1, file);
+    if (fseek(file, 0, SEEK_END) != 0) {
+        perror("Error seeking in file");
+        fclose(file);
+        return NULL;
+    }
+    long sz = ftell(file);
+    if (sz < 0) {
+        perror("Error getting file size");
+        fclose(file);
+        return NULL;
+    }
+    rewind(file);
+    char *buf = malloc((size_t)sz + 1);
+    if (!buf) {
+        fprintf(stderr, "Error: out of memory\n");
+        fclose(file);
+        return NULL;
+    }
+    size_t n = fread(buf, 1, (size_t)sz, file);
     fclose(file);
-    if (bytes_read >= buf_size - 1) {
-        fprintf(stderr, "Error: file too large\n");
-        return -1;
-    }
-    buf[bytes_read] = '\0';
-    return 0;
+    buf[n] = '\0';
+    return buf;
 }
 
 /*
@@ -329,14 +315,21 @@ static int parse_csv_results(const char *filename, taguchi_result_set_t *results
         return -1;
     }
 
-    char line[1024];
+    char line[4096];
     int line_num = 0;
     int data_lines = 0;
 
     while (fgets(line, sizeof(line), file)) {
         line_num++;
-        /* Trim trailing newline */
+        /* Detect truncated lines — buffer full with no newline means line exceeded limit */
         size_t len = strlen(line);
+        if (len == sizeof(line) - 1 && line[len - 1] != '\n') {
+            snprintf(error_buf, TAGUCHI_ERROR_SIZE,
+                     "Line %d exceeds maximum length (%zu chars)", line_num, sizeof(line) - 2);
+            fclose(file);
+            return -1;
+        }
+        /* Trim trailing newline */
         while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
             line[--len] = '\0';
         }
@@ -407,11 +400,12 @@ static int cmd_effects(int argc, char *argv[]) {
         }
     }
 
-    char content[4096];
-    if (read_file_content(tgu_file, content, sizeof(content)) != 0) return 1;
+    char *content = read_file_dynamic(tgu_file);
+    if (!content) return 1;
 
     char error[TAGUCHI_ERROR_SIZE];
     taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    free(content);
     if (!def) {
         fprintf(stderr, "Error parsing %s: %s\n", tgu_file, error);
         return 1;
@@ -486,11 +480,12 @@ static int cmd_analyze(int argc, char *argv[]) {
         }
     }
 
-    char content[4096];
-    if (read_file_content(tgu_file, content, sizeof(content)) != 0) return 1;
+    char *content = read_file_dynamic(tgu_file);
+    if (!content) return 1;
 
     char error[TAGUCHI_ERROR_SIZE];
     taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    free(content);
     if (!def) {
         fprintf(stderr, "Error parsing %s: %s\n", tgu_file, error);
         return 1;

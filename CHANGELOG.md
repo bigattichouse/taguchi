@@ -2,6 +2,33 @@
 
 All notable changes to the Taguchi Array Tool project.
 
+## [v1.3.0] - 2026-03-01
+### Security
+- **Dynamic file reading**: `.tgu` files are now read into heap-allocated buffers
+  (fseek/ftell/malloc) instead of a fixed 4096-byte stack buffer — no file size
+  limit, no silent truncation errors
+- **Replaced `putenv(strdup())` with `setenv()`** in `cmd_run`: the old pattern
+  leaked memory and passed raw pointers into the environment; `setenv()` copies
+  the string safely. Factor names containing `=` are now rejected to prevent
+  environment block corruption
+- **CSV line buffer**: raised from 1024 to 4096 bytes with explicit truncation
+  detection — malformed long lines now produce a clear error instead of silent
+  mis-parse
+- **16 new security tests** in `tests/test_security.c` covering: oversized factor
+  names, oversized level values, too many factors, level count cap, null/empty
+  inputs, special characters (`=`, shell metacharacters) in factor names, large
+  valid inputs, and error buffer null-termination
+
+### Changed
+- **Static CLI binary**: `taguchi` now links against `libtaguchi.a` instead of
+  `libtaguchi.so` — no runtime shared library dependency (`ldd` shows only libc)
+- **Makefile `install-cli` target**: installs only the binary; nothing else needed
+  since it is statically linked. `make install` (full install with shared lib +
+  headers) remains available for language binding users
+- **`make test`** no longer prefixes the unit test runner with `LD_LIBRARY_PATH`
+  (it links objects directly); the integration test still uses it as it exercises
+  the shared library
+
 ## [v1.2.0] - 2026-02-22
 ### Changed
 - **Project Structure**: Reorganized for cleaner separation of concerns

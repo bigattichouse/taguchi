@@ -89,6 +89,24 @@ extern void test_analyzer_recommend_lower_is_better(void);
 extern void test_analyzer_main_effects_l27(void);
 extern void test_analyzer_main_effects_paired(void);
 
+/* Declare test functions from test_security.c */
+extern void test_parse_oversized_factor_name(void);
+extern void test_parse_max_valid_factor_name(void);
+extern void test_parse_oversized_level_value(void);
+extern void test_parse_max_valid_level_value(void);
+extern void test_parse_max_factors_at_limit(void);
+extern void test_parse_too_many_factors(void);
+extern void test_parse_max_levels_at_limit(void);
+extern void test_parse_excess_levels_capped_not_crashed(void);
+extern void test_parse_null_content(void);
+extern void test_parse_null_def(void);
+extern void test_parse_empty_string(void);
+extern void test_parse_no_factors_section(void);
+extern void test_parse_factor_name_with_equals_sign(void);
+extern void test_parse_factor_name_with_shell_metacharacters(void);
+extern void test_parse_large_valid_input(void);
+extern void test_error_buffer_never_overflows(void);
+
 /* Declare test functions from test_generation.c */
 extern void test_generate_l27_regression(void);
 extern void test_column_pairing_4level_factor(void);
@@ -217,6 +235,24 @@ int main(void) {
     RUN_TEST(nine_level_balance_in_l81);
     RUN_TEST(auto_select_prefers_smallest);
     RUN_TEST(auto_select_l27_for_5_3level_factors);
+
+    printf("\\nSecurity Tests:\\n");
+    RUN_TEST(parse_oversized_factor_name);
+    RUN_TEST(parse_max_valid_factor_name);
+    RUN_TEST(parse_oversized_level_value);
+    RUN_TEST(parse_max_valid_level_value);
+    RUN_TEST(parse_max_factors_at_limit);
+    RUN_TEST(parse_too_many_factors);
+    RUN_TEST(parse_max_levels_at_limit);
+    RUN_TEST(parse_excess_levels_capped_not_crashed);
+    RUN_TEST(parse_null_content);
+    RUN_TEST(parse_null_def);
+    RUN_TEST(parse_empty_string);
+    RUN_TEST(parse_no_factors_section);
+    RUN_TEST(parse_factor_name_with_equals_sign);
+    RUN_TEST(parse_factor_name_with_shell_metacharacters);
+    RUN_TEST(parse_large_valid_input);
+    RUN_TEST(error_buffer_never_overflows);
 
     printf("\\n=== All Tests Passed ===\\n");
     return 0;

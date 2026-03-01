@@ -45,7 +45,7 @@ SHARED_LIB ?= $(BUILD_DIR)/$(SHARED_LIB_BASE)
 STATIC_LIB ?= $(BUILD_DIR)/libtaguchi.a
 CLI_TARGET ?= $(BUILD_DIR)/taguchi
 
-.PHONY: all lib cli test check install clean
+.PHONY: all lib cli test check install install-cli reinstall uninstall clean
 
 all: lib cli
 
@@ -61,23 +61,25 @@ $(STATIC_LIB): $(LIB_OBJECTS)
 $(BUILD_DIR)/lib/%.o: $(LIB_DIR)/%.c | $(BUILD_DIR)/lib
 	$(CC) $(CFLAGS) -I. -I$(INCLUDE_DIR) -c $< -o $@
 
-# Build CLI
+# Build CLI (statically linked — no runtime dependency on libtaguchi.so)
 cli: $(CLI_TARGET)
 
-$(CLI_TARGET): $(CLI_OBJECTS) $(SHARED_LIB)
-	$(CC) $(CLI_OBJECTS) -L$(BUILD_DIR) -ltaguchi -o $@ $(LDFLAGS)
+$(CLI_TARGET): $(CLI_OBJECTS) $(STATIC_LIB)
+	$(CC) $(CLI_OBJECTS) $(STATIC_LIB) -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/cli/%.o: $(CLI_DIR)/%.c | $(BUILD_DIR)/cli
 	$(CC) $(CFLAGS) -I. -I$(INCLUDE_DIR) -I$(LIB_DIR) -c $< -o $@
 
 # Build tests
+# The unit test runner links lib objects directly (no shared lib needed).
+# The integration test uses the shared lib, so it still needs LD_LIBRARY_PATH.
 test: $(TEST_TARGET) $(INTEGRATION_TEST_TARGET)
-	LD_LIBRARY_PATH=$(BUILD_DIR) ./$(TEST_TARGET)
+	./$(TEST_TARGET)
 	@echo "Running integration test..."
 	LD_LIBRARY_PATH=$(BUILD_DIR) ./$(INTEGRATION_TEST_TARGET)
 	@if command -v valgrind >/dev/null 2>&1; then \
 		echo "Running valgrind..."; \
-		LD_LIBRARY_PATH=$(BUILD_DIR) valgrind --leak-check=full --error-exitcode=1 ./$(TEST_TARGET); \
+		valgrind --leak-check=full --error-exitcode=1 ./$(TEST_TARGET); \
 	else \
 		echo "Warning: valgrind not found, skipping memory check."; \
 	fi
@@ -106,6 +108,15 @@ LIBDIR = $(PREFIX)/lib
 INCDIR = $(PREFIX)/include
 BINDIR = $(PREFIX)/bin
 
+# install-cli: install only the static binary — no library dependency required.
+#   Use this when you just want the 'taguchi' command-line tool.
+install-cli: cli
+	install -d $(BINDIR)
+	install -m 755 $(CLI_TARGET) $(BINDIR)/
+
+# install: full installation — static binary + shared lib + static lib + header.
+#   Use this when building language bindings (Python, Node) that link against
+#   libtaguchi at runtime.
 install: lib cli
 	install -d $(LIBDIR) $(INCDIR) $(BINDIR)
 	install -m 755 $(SHARED_LIB) $(LIBDIR)/$(SHARED_LIB_BASE)
