@@ -299,16 +299,41 @@ static char *read_file_dynamic(const char *filename) {
     return buf;
 }
 
+/* Split a CSV line in-place into field pointers. Returns field count.
+ * Replaces commas with NUL bytes; max_fields caps the result. */
+static int csv_split(char *line, char **fields, int max_fields) {
+    int n = 0;
+    char *p = line;
+    while (n < max_fields) {
+        fields[n++] = p;
+        p = strchr(p, ',');
+        if (!p) break;
+        *p++ = '\0';
+    }
+    return n;
+}
+
+/* Trim leading/trailing ASCII spaces and tabs in-place.
+ * Returns the new start pointer (may differ from s). */
+static char *csv_trim(char *s) {
+    while (*s == ' ' || *s == '\t') s++;
+    size_t len = strlen(s);
+    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\t')) s[--len] = '\0';
+    return s;
+}
+
 /*
- * Parse a CSV results file. Expected format:
- *   run_id,response_value
- *   1,42.5
- *   2,38.1
- *   ...
+ * Parse a CSV results file.
  *
- * Lines starting with '#' are treated as comments. The header line is skipped.
+ * The file may have any number of columns.  If the first non-comment,
+ * non-empty row is a header (its first field is not a plain integer), the
+ * column whose name matches metric_name is used as the response value.
+ * When no header is present the second column (index 1) is used.
+ *
+ * Lines starting with '#' are treated as comments.
  */
-static int parse_csv_results(const char *filename, taguchi_result_set_t *results, char *error_buf) {
+static int parse_csv_results(const char *filename, const char *metric_name,
+                              taguchi_result_set_t *results, char *error_buf) {
     FILE *file = fopen(filename, "r");
     if (!file) {
         snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Cannot open results file: %s", filename);
@@ -318,6 +343,8 @@ static int parse_csv_results(const char *filename, taguchi_result_set_t *results
     char line[4096];
     int line_num = 0;
     int data_lines = 0;
+    int metric_col = -1;   /* column index for the response value; -1 = not yet resolved */
+    bool header_seen = false;
 
     while (fgets(line, sizeof(line), file)) {
         line_num++;
@@ -329,7 +356,7 @@ static int parse_csv_results(const char *filename, taguchi_result_set_t *results
             fclose(file);
             return -1;
         }
-        /* Trim trailing newline */
+        /* Trim trailing newline/CR */
         while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
             line[--len] = '\0';
         }
@@ -337,29 +364,90 @@ static int parse_csv_results(const char *filename, taguchi_result_set_t *results
         /* Skip empty lines and comments */
         if (len == 0 || line[0] == '#') continue;
 
-        /* Skip header line */
-        if (line_num == 1 && (strstr(line, "run_id") || strstr(line, "run"))) continue;
+        if (!header_seen) {
+            header_seen = true;
 
-        /* Parse run_id,response */
-        char *comma = strchr(line, ',');
-        if (!comma) {
-            snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Invalid CSV format at line %d", line_num);
+            /* Decide if this row is a header by checking whether its first
+             * comma-delimited field parses as a plain integer. */
+            char tmp[4096];
+            strncpy(tmp, line, sizeof(tmp) - 1);
+            tmp[sizeof(tmp) - 1] = '\0';
+
+            char *hfields[512];
+            int nhf = csv_split(tmp, hfields, 512);
+
+            char *endptr;
+            strtol(csv_trim(hfields[0]), &endptr, 10);
+            bool is_header = (*endptr != '\0'); /* non-numeric first field → header */
+
+            if (is_header) {
+                /* Locate the column whose name matches metric_name */
+                for (int col = 0; col < nhf; col++) {
+                    if (strcmp(csv_trim(hfields[col]), metric_name) == 0) {
+                        metric_col = col;
+                        break;
+                    }
+                }
+
+                if (metric_col == -1) {
+                    if (strcmp(metric_name, "response") == 0) {
+                        /* Default metric not present in header — fall back to col 1 */
+                        metric_col = 1;
+                    } else {
+                        snprintf(error_buf, TAGUCHI_ERROR_SIZE,
+                                 "Metric '%s' not found in CSV header", metric_name);
+                        fclose(file);
+                        return -1;
+                    }
+                }
+                continue; /* header consumed; proceed to data rows */
+            } else {
+                /* No header row */
+                if (strcmp(metric_name, "response") != 0) {
+                    snprintf(error_buf, TAGUCHI_ERROR_SIZE,
+                             "No header row in '%s'; cannot locate metric '%s'",
+                             filename, metric_name);
+                    fclose(file);
+                    return -1;
+                }
+                metric_col = 1;
+                /* Fall through — parse this line as the first data row */
+            }
+        }
+
+        /* --- Data row --- */
+        char row[4096];
+        strncpy(row, line, sizeof(row) - 1);
+        row[sizeof(row) - 1] = '\0';
+
+        char *fields[512];
+        int nf = csv_split(row, fields, 512);
+
+        if (nf <= metric_col) {
+            snprintf(error_buf, TAGUCHI_ERROR_SIZE,
+                     "Row at line %d has %d column(s); metric '%s' is at column %d",
+                     line_num, nf, metric_name, metric_col + 1);
             fclose(file);
             return -1;
         }
 
-        *comma = '\0';
         char *endptr;
-        long run_id = strtol(line, &endptr, 10);
+        long run_id = strtol(csv_trim(fields[0]), &endptr, 10);
         if (*endptr != '\0' || run_id < 1) {
             snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Invalid run_id at line %d", line_num);
             fclose(file);
             return -1;
         }
 
-        double response = strtod(comma + 1, &endptr);
-        if (*endptr != '\0' && *endptr != '\n' && *endptr != '\r') {
-            snprintf(error_buf, TAGUCHI_ERROR_SIZE, "Invalid response value at line %d", line_num);
+        char *val_str = csv_trim(fields[metric_col]);
+        /* Skip rows where the metric value is absent (missing data) */
+        if (val_str[0] == '\0') continue;
+
+        double response = strtod(val_str, &endptr);
+        if (*endptr != '\0') {
+            snprintf(error_buf, TAGUCHI_ERROR_SIZE,
+                     "Invalid value for metric '%s' at line %d: '%s'",
+                     metric_name, line_num, val_str);
             fclose(file);
             return -1;
         }
@@ -418,7 +506,7 @@ static int cmd_effects(int argc, char *argv[]) {
         return 1;
     }
 
-    if (parse_csv_results(csv_file, results, error) != 0) {
+    if (parse_csv_results(csv_file, metric_name, results, error) != 0) {
         fprintf(stderr, "Error reading results: %s\n", error);
         taguchi_free_result_set(results);
         taguchi_free_definition(def);
@@ -498,7 +586,7 @@ static int cmd_analyze(int argc, char *argv[]) {
         return 1;
     }
 
-    if (parse_csv_results(csv_file, results, error) != 0) {
+    if (parse_csv_results(csv_file, metric_name, results, error) != 0) {
         fprintf(stderr, "Error reading results: %s\n", error);
         taguchi_free_result_set(results);
         taguchi_free_definition(def);

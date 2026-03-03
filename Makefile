@@ -73,10 +73,12 @@ $(BUILD_DIR)/cli/%.o: $(CLI_DIR)/%.c | $(BUILD_DIR)/cli
 # Build tests
 # The unit test runner links lib objects directly (no shared lib needed).
 # The integration test uses the shared lib, so it still needs LD_LIBRARY_PATH.
-test: $(TEST_TARGET) $(INTEGRATION_TEST_TARGET)
+test: $(TEST_TARGET) $(INTEGRATION_TEST_TARGET) $(CLI_TARGET)
 	./$(TEST_TARGET)
 	@echo "Running integration test..."
 	LD_LIBRARY_PATH=$(BUILD_DIR) ./$(INTEGRATION_TEST_TARGET)
+	@echo "Running CSV multi-column metric tests..."
+	@bash $(TEST_DIR)/test_csv_multicolumn.sh
 	@if command -v valgrind >/dev/null 2>&1; then \
 		echo "Running valgrind..."; \
 		valgrind --leak-check=full --error-exitcode=1 ./$(TEST_TARGET); \

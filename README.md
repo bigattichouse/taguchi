@@ -105,11 +105,15 @@ array: L9
 # List available orthogonal arrays
 ./taguchi list-arrays
 
-# Analyze results (CSV with run_id,response columns)
+# Analyze results — simple two-column CSV (run_id, response)
+./taguchi analyze experiment.tgu results.csv
+
+# Analyze results — multi-column CSV, pick a named metric
 ./taguchi analyze experiment.tgu results.csv --metric throughput
 
-# Calculate main effects only
-./taguchi effects experiment.tgu results.csv --metric throughput
+# Multiple metrics in one results file — analyse each independently
+./taguchi effects experiment.tgu results.csv --metric system_COP
+./taguchi effects experiment.tgu results.csv --metric heating_COP
 
 # Minimize a metric (e.g., latency)
 ./taguchi analyze experiment.tgu results.csv --metric latency --minimize
@@ -206,6 +210,29 @@ const taguchiLib = ffi.Library('./libtaguchi.so', {
   // (Refer to examples/nodejs/ for full implementation)
 });
 ```
+
+## Multi-Column Results CSV
+
+Simulations often produce multiple output metrics alongside factor columns in a single
+results file. The `effects` and `analyze` commands handle this natively:
+
+```
+# results.csv produced by a simulation
+run_id,endpoint_type,pressure,system_COP,heating_COP,T_fridge_C,Qh_W
+1,endpoint_only,low,3.21,4.12,-18.5,1200
+2,endpoint_only,medium,2.98,3.87,-19.1,1180
+...
+```
+
+```bash
+# Analyse any named column without pre-splitting the file
+./taguchi effects experiment.tgu results.csv --metric system_COP
+./taguchi effects experiment.tgu results.csv --metric Qh_W
+./taguchi analyze experiment.tgu results.csv --metric T_fridge_C --minimize
+```
+
+The `--metric` flag locates the column by header name. Non-numeric columns (factor
+columns, string labels) in all other positions are simply ignored.
 
 ## File Format (.tgu)
 

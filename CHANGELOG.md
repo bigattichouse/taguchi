@@ -2,6 +2,25 @@
 
 All notable changes to the Taguchi Array Tool project.
 
+## [v1.4.0] - 2026-03-03
+### Fixed
+- **Multi-column CSV support for `effects` and `analyze`**: the CSV parser in both
+  commands previously assumed a strict two-column `run_id,response` layout. When a
+  results file contains additional factor columns or multiple metric columns (e.g.
+  `run_id,endpoint_type,system_COP,heating_COP,T_fridge_C,Qh_W`), the old parser
+  would hit a non-numeric second column and fail with "Invalid response value". The
+  parser now reads the CSV header, locates the column whose name matches `--metric`,
+  and extracts only that column's values — all other columns are ignored. Backward
+  compatibility with headerless CSVs and the default `response` column name is
+  preserved.
+
+### Added
+- `tests/test_csv_multicolumn.sh`: 14 shell-based integration tests covering named
+  metric extraction, two-column backward compatibility, headerless CSVs, end-to-end
+  value checks, and expected-failure error messages.
+- `Makefile`: `make test` now also runs the CSV multi-column shell tests and adds
+  the CLI binary as a dependency of the test target.
+
 ## [v1.3.0] - 2026-03-01
 ### Security
 - **Dynamic file reading**: `.tgu` files are now read into heap-allocated buffers
