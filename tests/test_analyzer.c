@@ -324,6 +324,190 @@ TEST(analyzer_main_effects_l27) {
     free_experiments(runs, run_count);
 }
 
+/*
+ * Test: 9-level factor with duplicate value strings in L81.
+ *
+ * The factor definition has 9 entries where three distinct strings each appear
+ * three times: ["lo","lo","lo","med","med","med","hi","hi","hi"].
+ * Column pairing maps OA levels 0-8 to these values, so runs 0-2 store "lo",
+ * runs 3-5 store "med", and runs 6-8 store "hi".
+ *
+ * Bug (before fix): string matching always finds the FIRST occurrence of each
+ * string: "lo"->bucket 0, "med"->bucket 3, "hi"->bucket 6.
+ * Buckets 1,2,4,5,7,8 are never populated, so their means = 0.0 and the
+ * computed range is inflated (30-0=30 instead of the correct 30-10=20).
+ *
+ * Fix: use run->level_indices[factor_idx] (the post-modulo OA index) directly.
+ * Each of the 9 buckets receives data and the range is 20.0.
+ */
+TEST(analyzer_duplicate_values_9level) {
+    ExperimentDef def;
+    memset(&def, 0, sizeof(def));
+    strcpy(def.array_type, "L81");
+    def.factor_count = 2;
+
+    /* Factor N: 9 entries, 3 unique strings (each repeated 3×) */
+    strcpy(def.factors[0].name, "N");
+    def.factors[0].level_count = 9;
+    strcpy(def.factors[0].values[0], "lo");
+    strcpy(def.factors[0].values[1], "lo");
+    strcpy(def.factors[0].values[2], "lo");
+    strcpy(def.factors[0].values[3], "med");
+    strcpy(def.factors[0].values[4], "med");
+    strcpy(def.factors[0].values[5], "med");
+    strcpy(def.factors[0].values[6], "hi");
+    strcpy(def.factors[0].values[7], "hi");
+    strcpy(def.factors[0].values[8], "hi");
+
+    /* Factor M: 3 distinct levels (filler) */
+    strcpy(def.factors[1].name, "M");
+    def.factors[1].level_count = 3;
+    strcpy(def.factors[1].values[0], "m0");
+    strcpy(def.factors[1].values[1], "m1");
+    strcpy(def.factors[1].values[2], "m2");
+
+    ExperimentRun *runs = NULL;
+    size_t run_count = 0;
+    char err[256];
+    ASSERT_EQ(generate_experiments(&def, &runs, &run_count, err), 0);
+    ASSERT_EQ(run_count, (size_t)81);
+
+    ResultSet *rs = create_result_set(&def, "perf");
+    ASSERT_NOT_NULL(rs);
+
+    /* Response = 10 for "lo", 20 for "med", 30 for "hi" */
+    for (size_t i = 0; i < run_count; i++) {
+        double response = 0.0;
+        for (size_t f = 0; f < runs[i].factor_count; f++) {
+            if (strcmp(runs[i].factor_names[f], "N") == 0) {
+                if (strcmp(runs[i].values[f], "lo") == 0)       response = 10.0;
+                else if (strcmp(runs[i].values[f], "med") == 0) response = 20.0;
+                else                                             response = 30.0;
+            }
+        }
+        ASSERT_EQ(add_result(rs, runs[i].run_id, response), 0);
+    }
+
+    MainEffect *effects = NULL;
+    size_t effect_count = 0;
+    ASSERT_EQ(calculate_main_effects(rs, &effects, &effect_count), 0);
+
+    /* Locate factor N effect */
+    MainEffect *en = NULL;
+    for (size_t i = 0; i < effect_count; i++) {
+        if (strcmp(effects[i].factor_name, "N") == 0) en = &effects[i];
+    }
+    ASSERT_NOT_NULL(en);
+    ASSERT_EQ(en->level_count, (size_t)9);
+
+    /* All 9 buckets must be non-zero and consistent with their value group.
+     * Levels 0-2 map to "lo" (10), 3-5 to "med" (20), 6-8 to "hi" (30).
+     * Before the fix, buckets 1,2,4,5,7,8 would be 0.0. */
+    ASSERT_DOUBLE_EQ(en->level_means[0], 10.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[1], 10.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[2], 10.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[3], 20.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[4], 20.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[5], 20.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[6], 30.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[7], 30.0, 0.001);
+    ASSERT_DOUBLE_EQ(en->level_means[8], 30.0, 0.001);
+
+    /* Range must be 20 (hi - lo), not 30 (which the bug would produce
+     * because empty buckets have mean 0 and 30 - 0 = 30). */
+    ASSERT_DOUBLE_EQ(en->range, 20.0, 0.001);
+
+    free_main_effects(effects, effect_count);
+    free_result_set(rs);
+    free_experiments(runs, run_count);
+}
+
+/*
+ * Test: 5-level factor with duplicate value strings in L25.
+ *
+ * Factor definition: ["a","b","a","b","c"] — 5 entries, 3 unique, with "a" at
+ * positions 0 and 2, and "b" at positions 1 and 3.  L25 is a 5-level base array
+ * so the factor uses a single column.  OA levels 0-4 map directly to the 5 entries.
+ *
+ * Bug (before fix): "a" matched at lv=0 (first hit), buckets 2 and 3 always empty.
+ * Fix: OA level index routes each run to the correct bucket (0-4).
+ */
+TEST(analyzer_duplicate_values_5level) {
+    ExperimentDef def;
+    memset(&def, 0, sizeof(def));
+    strcpy(def.array_type, "L25");
+    def.factor_count = 2;
+
+    /* Factor P: 5 entries, ["a","b","a","b","c"] */
+    strcpy(def.factors[0].name, "P");
+    def.factors[0].level_count = 5;
+    strcpy(def.factors[0].values[0], "a");
+    strcpy(def.factors[0].values[1], "b");
+    strcpy(def.factors[0].values[2], "a");  /* duplicate "a" at index 2 */
+    strcpy(def.factors[0].values[3], "b");  /* duplicate "b" at index 3 */
+    strcpy(def.factors[0].values[4], "c");
+
+    /* Factor Q: 5 distinct levels */
+    strcpy(def.factors[1].name, "Q");
+    def.factors[1].level_count = 5;
+    strcpy(def.factors[1].values[0], "q0");
+    strcpy(def.factors[1].values[1], "q1");
+    strcpy(def.factors[1].values[2], "q2");
+    strcpy(def.factors[1].values[3], "q3");
+    strcpy(def.factors[1].values[4], "q4");
+
+    ExperimentRun *runs = NULL;
+    size_t run_count = 0;
+    char err[256];
+    ASSERT_EQ(generate_experiments(&def, &runs, &run_count, err), 0);
+    ASSERT_EQ(run_count, (size_t)25);
+
+    ResultSet *rs = create_result_set(&def, "score");
+    ASSERT_NOT_NULL(rs);
+
+    /* Response = 10 if "a", 20 if "b", 30 if "c" */
+    for (size_t i = 0; i < run_count; i++) {
+        double response = 0.0;
+        for (size_t f = 0; f < runs[i].factor_count; f++) {
+            if (strcmp(runs[i].factor_names[f], "P") == 0) {
+                if (strcmp(runs[i].values[f], "a") == 0)      response = 10.0;
+                else if (strcmp(runs[i].values[f], "b") == 0) response = 20.0;
+                else                                           response = 30.0;
+            }
+        }
+        ASSERT_EQ(add_result(rs, runs[i].run_id, response), 0);
+    }
+
+    MainEffect *effects = NULL;
+    size_t effect_count = 0;
+    ASSERT_EQ(calculate_main_effects(rs, &effects, &effect_count), 0);
+
+    /* Locate factor P effect */
+    MainEffect *ep = NULL;
+    for (size_t i = 0; i < effect_count; i++) {
+        if (strcmp(effects[i].factor_name, "P") == 0) ep = &effects[i];
+    }
+    ASSERT_NOT_NULL(ep);
+    ASSERT_EQ(ep->level_count, (size_t)5);
+
+    /* Buckets 0 and 2 receive "a" runs (response 10).
+     * Buckets 1 and 3 receive "b" runs (response 20).
+     * Bucket 4 receives "c" runs (response 30).
+     * Before the fix, buckets 2 and 3 would be 0.0. */
+    ASSERT_DOUBLE_EQ(ep->level_means[0], 10.0, 0.001);
+    ASSERT_DOUBLE_EQ(ep->level_means[1], 20.0, 0.001);
+    ASSERT_DOUBLE_EQ(ep->level_means[2], 10.0, 0.001);  /* would be 0 before fix */
+    ASSERT_DOUBLE_EQ(ep->level_means[3], 20.0, 0.001);  /* would be 0 before fix */
+    ASSERT_DOUBLE_EQ(ep->level_means[4], 30.0, 0.001);
+
+    /* Range = 30 - 10 = 20.  The bug inflates this to 30 - 0 = 30. */
+    ASSERT_DOUBLE_EQ(ep->range, 20.0, 0.001);
+
+    free_main_effects(effects, effect_count);
+    free_result_set(rs);
+    free_experiments(runs, run_count);
+}
+
 /* Test: main effects with paired columns (9-level factor in L81) */
 TEST(analyzer_main_effects_paired) {
     ExperimentDef def;

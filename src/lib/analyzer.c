@@ -118,14 +118,14 @@ int calculate_main_effects(const ResultSet *results, MainEffect **effects_out, s
             if (run_id < 1 || run_id > run_count) continue;
             const ExperimentRun *run = &runs[run_id - 1];
 
-            /* Find which level value this run used for this factor */
-            const char *run_value = run->values[factor_idx];
-            for (size_t lv = 0; lv < factor->level_count; lv++) {
-                if (strcmp(run_value, factor->values[lv]) == 0) {
-                    level_sums[lv] += response;
-                    level_counts[lv]++;
-                    break;
-                }
+            /* Use the stored OA level index directly.
+             * String matching would pick the first occurrence of a duplicate
+             * value string, leaving other buckets at 0.  The level index is
+             * the authoritative bucket regardless of repeated value strings. */
+            size_t lv = run->level_indices[factor_idx];
+            if (lv < factor->level_count) {
+                level_sums[lv] += response;
+                level_counts[lv]++;
             }
         }
 

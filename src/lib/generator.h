@@ -10,6 +10,7 @@
 typedef struct {
     size_t run_id;
     char values[MAX_FACTORS][MAX_LEVEL_VALUE];
+    size_t level_indices[MAX_FACTORS]; /* post-modulo OA level index for each factor */
     size_t factor_count;
     char factor_names[MAX_FACTORS][MAX_FACTOR_NAME];
 } ExperimentRun;

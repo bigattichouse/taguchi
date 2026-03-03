@@ -225,6 +225,7 @@ int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, siz
             if (level_index < 0) level_index = 0;
             level_index = level_index % (int)factor->level_count;
 
+            run->level_indices[factor_idx] = (size_t)level_index;
             strcpy(run->values[factor_idx], factor->values[level_index]);
         }
     }

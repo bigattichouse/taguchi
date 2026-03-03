@@ -88,6 +88,8 @@ extern void test_analyzer_recommend_higher_is_better(void);
 extern void test_analyzer_recommend_lower_is_better(void);
 extern void test_analyzer_main_effects_l27(void);
 extern void test_analyzer_main_effects_paired(void);
+extern void test_analyzer_duplicate_values_9level(void);
+extern void test_analyzer_duplicate_values_5level(void);
 
 /* Declare test functions from test_security.c */
 extern void test_parse_oversized_factor_name(void);
@@ -217,6 +219,8 @@ int main(void) {
     RUN_TEST(analyzer_recommend_lower_is_better);
     RUN_TEST(analyzer_main_effects_l27);
     RUN_TEST(analyzer_main_effects_paired);
+    RUN_TEST(analyzer_duplicate_values_9level);
+    RUN_TEST(analyzer_duplicate_values_5level);
 
     printf("\\nGeneration & Column Pairing Tests:\\n");
     RUN_TEST(generate_l27_regression);
