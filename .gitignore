@@ -14,7 +14,7 @@ libtaguchi.a
 build/
 
 # Binaries
-taguchi
+# taguchi (CLI binary)
 
 # Test files
 test_runner
@@ -42,3 +42,7 @@ Thumbs.db
 *.log
 *~
 #*
+# But allow bindings
+!bindings/
+__pycache__/
+*.pyc
