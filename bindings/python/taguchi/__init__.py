@@ -15,5 +15,5 @@ from .core import Taguchi, TaguchiError
 from .experiment import Experiment
 from .analyzer import Analyzer
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 __all__ = ["Taguchi", "TaguchiError", "Experiment", "Analyzer"]

@@ -2,7 +2,7 @@
 
 All notable changes to the Taguchi Array Tool project.
 
-## [Unreleased]
+## [v1.5.0] - 2026-03-09
 ### Added
 - **Python bindings** (`bindings/python/`): `Experiment` and `Analyzer` classes
   wrapping the `taguchi` CLI via subprocess. Installable as a Python package

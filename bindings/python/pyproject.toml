@@ -1,6 +1,6 @@
 [project]
 name = "taguchi-bindings"
-version = "1.4.0"
+version = "1.5.0"
 description = "Python bindings for Taguchi orthogonal array tool"
 readme = "README.md"
 requires-python = ">=3.8"

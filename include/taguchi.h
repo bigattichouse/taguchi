@@ -10,8 +10,8 @@ extern "C" {
 
 /* Library version */
 #define TAGUCHI_VERSION_MAJOR 1
-#define TAGUCHI_VERSION_MINOR 4
-#define TAGUCHI_VERSION_PATCH 1
+#define TAGUCHI_VERSION_MINOR 5
+#define TAGUCHI_VERSION_PATCH 0
 
 /* Error buffer size */
 #define TAGUCHI_ERROR_SIZE 256

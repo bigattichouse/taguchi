@@ -15,6 +15,7 @@ build/
 
 # Binaries — ignore the CLI binary anywhere outside build/
 taguchi
+!bindings/python/taguchi/
 
 # Test files
 test_runner
