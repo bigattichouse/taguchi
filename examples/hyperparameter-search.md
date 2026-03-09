@@ -1,10 +1,12 @@
-# Taguchi Array Integration for Autoresearch
+# ML Hyperparameter Search with Taguchi Arrays
 
 ## Overview
 
 The Taguchi library provides **orthogonal array experimental design** that can
-significantly improve autoresearch hyperparameter exploration efficiency —
-typically 67–94% fewer experiments than a full factorial sweep.
+significantly reduce the number of experiments needed to find optimal ML
+hyperparameters — typically 67–94% fewer runs than a full factorial sweep,
+while still identifying which parameters matter most and what their optimal
+values are.
 
 ## Installation
 
@@ -35,15 +37,18 @@ with Experiment() as exp:
     results = {}
     for run in runs:
         factors = run["factors"]
-        # Set hyperparameters, run training, collect metric
-        # val_bpb = train(depth=factors["DEPTH"], ...)
-        # results[run["run_id"]] = val_bpb
-        pass
+        # Set hyperparameters, run training, collect your metric
+        # val_loss = train(
+        #     depth=int(factors["DEPTH"]),
+        #     lr=float(factors["MATRIX_LR"]),
+        #     weight_decay=float(factors["WEIGHT_DECAY"]),
+        # )
+        # results[run["run_id"]] = val_loss
 
-    with Analyzer(exp, metric_name="val_bpb") as analyzer:
+    with Analyzer(exp, metric_name="val_loss") as analyzer:
         analyzer.add_results_from_dict(results)
 
-        # Recommend optimal settings (lower val_bpb is better)
+        # Recommend optimal settings (lower loss is better)
         optimal = analyzer.recommend_optimal(higher_is_better=False)
         print(f"Optimal config: {optimal}")
 

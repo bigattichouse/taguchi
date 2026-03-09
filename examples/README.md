@@ -7,13 +7,14 @@ This directory contains practical examples demonstrating how to use the Taguchi 
 ```
 examples/
 ├── long-running-experiments.md     # Guide for long-running/manual experiments
+├── hyperparameter-search.md        # ML hyperparameter optimization with Python bindings
 ├── chocolate-chips/               # Complete example: Chocolate chip cookie optimization
 │   ├── cookie_experiment.tgu      # Experiment definition file
 │   ├── results_template.csv       # Template for result collection
 │   ├── sample_results.csv         # Sample data from completed experiment
 │   ├── generate_recipe_cards.sh   # Script to create manual execution cards
 │   ├── walkthrough.md             # Complete step-by-step guide
-│   └── README.md                  # This file
+│   └── README.md
 └── nodejs/                        # Node.js API binding examples
     └── taguchi_binding.js         # ffi-napi Node.js bindings
 ```
@@ -27,14 +28,19 @@ Documentation for using the tool with experiments that take time to complete, in
 - Delayed execution workflows
 - State management for interrupted workflows
 
-### 2. Chocolate Chip Cookie Optimization
+### 2. ML Hyperparameter Search
+Using the Python bindings to efficiently sweep ML hyperparameters with 67–94% fewer
+training runs than full factorial search. Covers `Experiment`, `Analyzer`,
+`recommend_optimal`, and `get_significant_factors`.
+
+### 3. Chocolate Chip Cookie Optimization
 A complete end-to-end example showing how to optimize a chocolate chip cookie recipe:
 - 7 factors at 3 levels each (27-run L27 array)
 - Manual execution workflow
 - Data collection and analysis
 - Result interpretation and optimization
 
-### 3. Node.js API Client
+### 4. Node.js API Client
 Examples demonstrating how to interface with the C library from Node.js using FFI.
 
 ## Getting Started
