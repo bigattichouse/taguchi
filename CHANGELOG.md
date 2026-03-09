@@ -2,6 +2,69 @@
 
 All notable changes to the Taguchi Array Tool project.
 
+## [v1.6.0] - 2026-03-09
+### Added - Enhanced Python Bindings 🚀
+- **Phase 1: Critical Infrastructure**
+  - Enhanced binary discovery with `TAGUCHI_CLI_PATH` environment variable support
+  - Rich error messages with comprehensive context, suggestions, and diagnostic information
+  - Flexible configuration system with `TaguchiConfig` class and environment variable support
+  - Robust retry logic with exponential backoff for transient failures
+  - Cross-platform binary search with detailed error reporting
+
+- **Phase 2: API Improvements**
+  - Validation methods: `validate()` and `is_valid()` for experiments and analyzers
+  - Dependency injection: Pass configured `Taguchi` instances to components
+  - Format versioning: CLI version checking and compatibility validation
+  - Enhanced experiment analysis with efficiency metrics and runtime estimation
+  - Advanced analyzer features: factor rankings, significance testing, response prediction
+
+- **Phase 3: Advanced Features** 
+  - Async support with `AsyncTaguchi` class for non-blocking operations
+  - Debug logging system with configurable command tracing
+  - Installation verification and environment diagnostics
+  - Global configuration management with `ConfigManager`
+  - Comprehensive error hierarchy with specific error types
+
+### Enhanced Python Bindings Features
+- **Configuration Management**: Environment variables (`TAGUCHI_*`) for easy deployment
+- **Enhanced Error Handling**: Rich context with operation details, suggestions, and diagnostics
+- **Validation System**: Comprehensive validation for experiments, factors, and results
+- **Async Operations**: Full async/await support for concurrent workflows
+- **Diagnostic Tools**: Installation verification, environment analysis, troubleshooting guides
+- **Backward Compatibility**: 100% compatible with existing code, no breaking changes
+
+### New Environment Variables
+- `TAGUCHI_CLI_PATH` - Path to CLI binary
+- `TAGUCHI_CLI_TIMEOUT` - Command timeout in seconds (default: 30)
+- `TAGUCHI_DEBUG` - Enable debug logging (true/false)
+- `TAGUCHI_MAX_RETRIES` - Number of retry attempts (default: 0)
+- `TAGUCHI_RETRY_DELAY` - Delay between retries in seconds (default: 1.0)
+- `TAGUCHI_WORKING_DIR` - Working directory for commands
+- `TAGUCHI_ENV_VARS` - Additional environment variables (KEY=value,...)
+
+### New Python API Features
+- `TaguchiConfig` class with validation and environment loading
+- `verify_installation()` and `diagnose_environment()` diagnostic functions
+- Enhanced `Experiment` with `validate()`, `compare_with_full_factorial()`, `estimate_runtime()`
+- Enhanced `Analyzer` with `get_factor_rankings()`, `predict_response()`, `check_completeness()`
+- `AsyncTaguchi` for non-blocking operations
+- Global configuration with `set_global_config()` and `reset_global_config()`
+- Comprehensive error types: `BinaryDiscoveryError`, `TimeoutError`, `ValidationError`
+
+### Documentation and Examples
+- Comprehensive examples demonstrating all enhanced features
+- Async usage patterns and best practices
+- Troubleshooting guide with diagnostic workflows
+- Enhanced README with migration guide and environment variable reference
+- Complete test suite with 400+ tests covering all features
+
+### Testing and Quality
+- 400+ unit tests covering all enhanced functionality
+- Integration tests verifying cross-component compatibility
+- Backward compatibility test suite
+- Performance benchmarks and caching verification
+- Cross-platform compatibility testing
+
 ## [v1.5.0] - 2026-03-09
 ### Added
 - **Python bindings** (`bindings/python/`): `Experiment` and `Analyzer` classes
