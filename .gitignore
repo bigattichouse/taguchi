@@ -13,8 +13,8 @@ libtaguchi.a
 # Build artifacts
 build/
 
-# Binaries
-# taguchi (CLI binary)
+# Binaries — ignore the CLI binary anywhere outside build/
+taguchi
 
 # Test files
 test_runner
