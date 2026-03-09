@@ -68,6 +68,74 @@ class TestAddResult:
         assert len(a._results) == 3
 
 
+class TestEmptyResultsGuard:
+    def test_main_effects_raises_with_no_results(self, two_factor_exp):
+        a = Analyzer(two_factor_exp)
+        with pytest.raises(TaguchiError, match="No results added"):
+            a.main_effects()
+
+    def test_recommend_optimal_raises_with_no_results(self, two_factor_exp):
+        a = Analyzer(two_factor_exp)
+        with pytest.raises(TaguchiError, match="No results added"):
+            a.recommend_optimal()
+
+
+class TestMetricPassthrough:
+    def test_metric_name_in_csv(self, two_factor_exp, tmp_path):
+        """The metric name must appear as the CSV header column."""
+        a = Analyzer(two_factor_exp, metric_name="my_score")
+        a.add_result(1, 1.0)
+        _, csv_path = a._ensure_files()
+        with open(csv_path) as f:
+            header = f.readline()
+        assert "my_score" in header
+        a.cleanup()
+
+
+class TestParseEffects:
+    def test_handles_negative_level_means(self, two_factor_exp):
+        """_parse_effects must not drop entries with negative mean values."""
+        a = Analyzer(two_factor_exp)
+        fake_output = (
+            "depth    0.500   L1=-0.200, L2=0.100, L3=0.300\n"
+            "lr       0.200   L1=0.050, L2=-0.150, L3=0.200\n"
+        )
+        effects = a._parse_effects(fake_output)
+        assert len(effects) == 2
+        assert effects[0]["level_means"][0] == -0.200
+        assert effects[1]["level_means"][1] == -0.150
+
+    def test_skips_non_matching_lines(self, two_factor_exp):
+        a = Analyzer(two_factor_exp)
+        # Build explicitly to avoid the adjacent-literal-concatenation gotcha
+        fake_output = "\n".join([
+            "Factor           Range   Level Means",
+            "depth    0.026   L1=1.050, L2=1.024, L3=1.037",
+            "",
+            "=" * 40,
+        ])
+        effects = a._parse_effects(fake_output)
+        assert len(effects) == 1
+        assert effects[0]["factor"] == "depth"
+
+
+class TestCleanup:
+    def test_cleanup_removes_csv(self, two_factor_exp):
+        a = Analyzer(two_factor_exp)
+        a.add_result(1, 1.0)
+        a._ensure_files()
+        path = a._csv_path
+        assert os.path.exists(path)
+        a.cleanup()
+        assert not os.path.exists(path)
+        assert a._csv_path is None
+
+    def test_cleanup_idempotent(self, two_factor_exp):
+        a = Analyzer(two_factor_exp)
+        a.cleanup()  # no CSV created — must not raise
+        a.cleanup()
+
+
 class TestMainEffects:
     def test_returns_list(self, analyzer_with_results):
         effects = analyzer_with_results.main_effects()
@@ -102,15 +170,11 @@ class TestMainEffects:
         e2 = analyzer_with_results.main_effects()
         assert e1 is e2  # same object — from cache
 
-    def test_no_results_returns_empty_or_raises(self, two_factor_exp):
-        """With no results added, main_effects should either raise clearly or return []."""
+    def test_no_results_raises_clearly(self, two_factor_exp):
+        """With no results added, main_effects must raise TaguchiError."""
         a = Analyzer(two_factor_exp)
-        try:
-            effects = a.main_effects()
-            # acceptable: empty list
-            assert isinstance(effects, list)
-        except (TaguchiError, Exception):
-            pass  # also acceptable: clear error
+        with pytest.raises(TaguchiError, match="No results added"):
+            a.main_effects()
 
 
 class TestRecommendOptimal:

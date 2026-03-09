@@ -11,8 +11,16 @@ from .core import Taguchi, TaguchiError
 
 
 class Analyzer:
-    """Analyze results from Taguchi orthogonal array experiments."""
-    
+    """
+    Collect results from a Taguchi experiment and compute main effects.
+
+    Use as a context manager to ensure the temporary results CSV is cleaned up:
+
+        with Analyzer(exp, metric_name="accuracy") as analyzer:
+            analyzer.add_results_from_dict({1: 0.92, 2: 0.87, ...})
+            print(analyzer.summary())
+    """
+
     def __init__(self, experiment: Any, metric_name: str = "response"):
         self._taguchi = Taguchi()
         self._experiment = experiment
@@ -20,10 +28,35 @@ class Analyzer:
         self._results: Dict[int, float] = {}
         self._effects: Optional[List[Dict]] = None
         self._csv_path: Optional[str] = None
-        self._tgu_path: Optional[str] = None
-        
+
+    # ------------------------------------------------------------------
+    # Result collection
+    # ------------------------------------------------------------------
+
+    def add_result(self, run_id: int, value: float) -> "Analyzer":
+        """Record the measured response for a run. Returns self for chaining."""
+        self._results[run_id] = float(value)
+        self._effects = None   # invalidate cached analysis
+        self._csv_path = None  # invalidate cached CSV
+        return self
+
+    def add_results_from_dict(self, results: Dict[int, float]) -> "Analyzer":
+        """Record multiple results at once. Returns self for chaining."""
+        for run_id, value in results.items():
+            self.add_result(run_id, value)
+        return self
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
     def _ensure_files(self) -> tuple:
-        """Ensure results CSV and TGU files exist."""
+        """Write the results CSV if needed; return (tgu_path, csv_path)."""
+        if not self._results:
+            raise TaguchiError(
+                "No results added. Call add_result() before analyzing."
+            )
+
         if self._csv_path is None:
             fd, path = tempfile.mkstemp(suffix='.csv')
             with os.fdopen(fd, 'w', newline='') as f:
@@ -32,138 +65,176 @@ class Analyzer:
                 for run_id, value in sorted(self._results.items()):
                     writer.writerow([run_id, value])
             self._csv_path = path
-        
-        if self._tgu_path is None:
-            self._tgu_path = self._experiment._ensure_tgu_file()
-        
-        return self._tgu_path, self._csv_path
-    
-    def add_result(self, run_id: int, value: float) -> "Analyzer":
-        """Add a result for a run."""
-        self._results[run_id] = value
-        self._effects = None
-        self._csv_path = None
-        return self
-    
-    def add_results_from_dict(self, results: Dict[int, float]) -> "Analyzer":
-        """Add multiple results from a dictionary."""
-        for run_id, value in results.items():
-            self.add_result(run_id, value)
-        return self
-    
+
+        # Use the public API — no private method access
+        tgu_path = self._experiment.get_tgu_path()
+        return tgu_path, self._csv_path
+
     def _parse_effects(self, output: str) -> List[Dict]:
-        """Parse effects table from CLI output."""
+        """
+        Parse the main-effects table from CLI output.
+
+        Expected line format:
+            depth    0.026   L1=1.050, L2=1.024, L3=1.037
+
+        Handles:
+        - Negative level means (e.g. L1=-0.5)
+        - Extra whitespace / header/footer lines (silently skipped)
+        """
         effects = []
-        lines = output.strip().split('\n')
-        
-        for line in lines:
-            # Parse lines like "depth                   0.026   L1=1.050, L2=1.024, L3=1.037"
-            # Factor name, range, and level means
+        for line in output.strip().split('\n'):
+            # Factor name (word chars), range (number), then level means
             match = re.match(r'\s*(\w+)\s+([\d.]+)\s+(.+)', line)
-            if match:
-                factor = match.group(1)
+            if not match:
+                continue
+
+            factor = match.group(1)
+            try:
                 range_val = float(match.group(2))
-                means_str = match.group(3)
-                
-                # Parse level means: "L1=1.050, L2=1.024, L3=1.037"
-                level_matches = re.findall(r'L\d+=([\d.]+)', means_str)
-                means = [float(m) for m in level_matches]
-                
-                if means:
-                    effects.append({
-                        'factor': factor,
-                        'range': range_val,
-                        'level_means': means,
-                    })
-        
+            except ValueError:
+                continue
+
+            means_str = match.group(3)
+            # Match L<n>=<signed float> — handles negatives and scientific notation
+            level_matches = re.findall(r'L\d+=(-?[\d.]+(?:[eE][+-]?\d+)?)', means_str)
+            means = []
+            for m in level_matches:
+                try:
+                    means.append(float(m))
+                except ValueError:
+                    pass
+
+            if means:
+                effects.append({
+                    'factor': factor,
+                    'range': range_val,
+                    'level_means': means,
+                })
+
         return effects
-    
+
+    def cleanup(self) -> None:
+        """Delete the temporary results CSV if one was created."""
+        if self._csv_path and os.path.exists(self._csv_path):
+            try:
+                os.unlink(self._csv_path)
+            except OSError:
+                pass
+        self._csv_path = None
+
+    # ------------------------------------------------------------------
+    # Analysis API
+    # ------------------------------------------------------------------
+
     def main_effects(self) -> List[Dict[str, Any]]:
-        """Calculate main effects for all factors."""
+        """
+        Calculate and cache main effects for all factors.
+
+        Returns a list of dicts: [{'factor': str, 'range': float,
+                                    'level_means': [float, ...]}, ...]
+        """
         if self._effects is None:
             tgu_path, csv_path = self._ensure_files()
-            output = self._taguchi.effects(tgu_path, csv_path)
+            output = self._taguchi.effects(
+                tgu_path, csv_path, metric=self._metric_name
+            )
             self._effects = self._parse_effects(output)
+            if not self._effects:
+                raise TaguchiError(
+                    "effects command produced no parseable output. "
+                    "Check that run IDs in results match the experiment."
+                )
         return self._effects
-    
+
     def recommend_optimal(self, higher_is_better: bool = True) -> Dict[str, str]:
-        """Recommend optimal factor levels based on main effects."""
+        """
+        Return the optimal level for each factor.
+
+        Uses definition order for level indexing (L1 = first level defined,
+        L2 = second, etc.) — not alphabetical order.
+        """
         effects = self.main_effects()
 
-        # Use definition order from the experiment — the OA level indices (L1, L2, L3)
-        # correspond to the order levels were defined, not alphabetical order.
+        # factor_levels preserves insertion order (Python 3.7+)
         factor_levels: Dict[str, List[str]] = self._experiment.factors
-        
-        optimal = {}
+
+        optimal: Dict[str, str] = {}
         for effect in effects:
             factor = effect["factor"]
             level_means = effect["level_means"]
-            
-            if not level_means:
+            if not level_means or factor not in factor_levels:
                 continue
-                
+
             if higher_is_better:
                 best_idx = level_means.index(max(level_means))
             else:
                 best_idx = level_means.index(min(level_means))
-            
-            if factor in factor_levels and best_idx < len(factor_levels[factor]):
-                optimal[factor] = factor_levels[factor][best_idx]
-        
+
+            levels = factor_levels[factor]
+            if best_idx < len(levels):
+                optimal[factor] = levels[best_idx]
+
         return optimal
-    
+
     def get_significant_factors(self, threshold: float = 0.1) -> List[str]:
-        """Get factors with significant effects."""
+        """
+        Return factor names whose effect range is >= threshold * max_range.
+
+        threshold=0.1 means factors with at least 10% of the largest effect.
+        """
         effects = self.main_effects()
         if not effects:
             return []
-        
         max_range = max(e["range"] for e in effects)
         if max_range == 0:
             return []
-        
         return [e["factor"] for e in effects if e["range"] >= threshold * max_range]
-    
+
     def summary(self) -> str:
-        """Generate a summary of the analysis."""
+        """Return a formatted text summary of main effects and recommendations."""
         effects = self.main_effects()
         optimal = self.recommend_optimal()
-        
+
         lines = [
             "=" * 60,
             f"Taguchi Experiment Analysis: {self._metric_name}",
             "=" * 60,
             "",
-            "Main Effects:",
+            "Main Effects (sorted by range, descending):",
             "-" * 40,
         ]
-        
-        sorted_effects = sorted(effects, key=lambda e: e["range"], reverse=True)
-        
-        for effect in sorted_effects:
+
+        for effect in sorted(effects, key=lambda e: e["range"], reverse=True):
             factor = effect["factor"]
             range_val = effect["range"]
-            level_means = effect["level_means"]
-            means_str = ", ".join(f"{m:.4f}" for m in level_means)
+            means_str = ", ".join(f"{m:.4f}" for m in effect["level_means"])
             lines.append(f"  {factor:20s} range={range_val:8.4f}  means=[{means_str}]")
-        
-        lines.extend([
+
+        lines += [
             "",
             "Recommended Optimal Settings:",
             "-" * 40,
-        ])
-        
+        ]
         for factor, level in optimal.items():
             lines.append(f"  {factor:20s} -> {level}")
-        
-        lines.extend(["", "=" * 60])
-        
+
+        lines += ["", "=" * 60]
         return "\n".join(lines)
-    
+
+    # ------------------------------------------------------------------
+    # Context manager and finalizer
+    # ------------------------------------------------------------------
+
     def __enter__(self) -> "Analyzer":
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        if self._csv_path and os.path.exists(self._csv_path):
-            os.unlink(self._csv_path)
-            self._csv_path = None
+        self.cleanup()
+
+    def __del__(self) -> None:
+        try:
+            path = self.__dict__.get('_csv_path')
+            if path and os.path.exists(path):
+                os.unlink(path)
+        except Exception:
+            pass

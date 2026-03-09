@@ -22,6 +22,43 @@ def use_cli(monkeypatch):
     monkeypatch.setattr(core.Taguchi, "_find_cli", patched_find)
 
 
+class TestInputValidation:
+    def test_rejects_name_with_equals(self):
+        exp = Experiment()
+        with pytest.raises(TaguchiError, match="invalid character"):
+            exp.add_factor("bad=name", ["a", "b"])
+
+    def test_rejects_name_with_hash(self):
+        exp = Experiment()
+        with pytest.raises(TaguchiError, match="invalid character"):
+            exp.add_factor("bad#name", ["a", "b"])
+
+    def test_rejects_name_with_colon(self):
+        exp = Experiment()
+        with pytest.raises(TaguchiError, match="invalid character"):
+            exp.add_factor("bad:name", ["a", "b"])
+
+    def test_rejects_empty_name(self):
+        exp = Experiment()
+        with pytest.raises(TaguchiError, match="empty"):
+            exp.add_factor("", ["a", "b"])
+
+    def test_rejects_empty_levels(self):
+        exp = Experiment()
+        with pytest.raises(TaguchiError, match="at least one level"):
+            exp.add_factor("x", [])
+
+    def test_rejects_non_string_levels(self):
+        exp = Experiment()
+        with pytest.raises(TaguchiError, match="must be strings"):
+            exp.add_factor("x", [1, 2, 3])  # type: ignore
+
+    def test_valid_name_with_underscore(self):
+        exp = Experiment()
+        exp.add_factor("layer_count", ["4", "8"])
+        assert "layer_count" in exp.factors
+
+
 class TestAddFactor:
     def test_add_single_factor(self):
         exp = Experiment()
@@ -166,17 +203,44 @@ class TestFromTgu:
         exp = Experiment.from_tgu(str(p))
         assert exp._array_type == "L9"
 
-    def test_from_tgu_ignores_comments(self, tmp_path):
-        p = tmp_path / "with_comments.tgu"
+    def test_from_tgu_ignores_full_line_comments(self, tmp_path):
+        p = tmp_path / "comments.tgu"
         p.write_text(
             "# This is an experiment\n"
             "factors:\n"
-            "  depth: 4, 6, 8  # layer count\n"
+            "  depth: 4, 6, 8\n"
+            "# another comment\n"
             "  lr: 0.01, 0.1\n"
         )
         exp = Experiment.from_tgu(str(p))
         assert "depth" in exp.factors
         assert "lr" in exp.factors
+
+    def test_from_tgu_strips_inline_comments(self, tmp_path):
+        p = tmp_path / "inline_comments.tgu"
+        p.write_text(
+            "factors:\n"
+            "  depth: 4, 6, 8  # layer count\n"
+            "  lr: 0.01, 0.1   # learning rate\n"
+        )
+        exp = Experiment.from_tgu(str(p))
+        assert exp.factors["depth"] == ["4", "6", "8"]
+        assert exp.factors["lr"] == ["0.01", "0.1"]
+
+    def test_from_tgu_handles_blank_lines(self, tmp_path):
+        p = tmp_path / "blanks.tgu"
+        p.write_text(
+            "\nfactors:\n\n  depth: 4, 6, 8\n\n  lr: 0.01, 0.1\n\n"
+        )
+        exp = Experiment.from_tgu(str(p))
+        assert "depth" in exp.factors
+        assert "lr" in exp.factors
+
+    def test_from_tgu_raises_on_empty_file(self, tmp_path):
+        p = tmp_path / "empty.tgu"
+        p.write_text("# just a comment\n")
+        with pytest.raises(TaguchiError, match="No factors found"):
+            Experiment.from_tgu(str(p))
 
     def test_from_tgu_can_generate(self, tmp_path):
         p = tmp_path / "gen.tgu"
@@ -184,6 +248,38 @@ class TestFromTgu:
         exp = Experiment.from_tgu(str(p))
         runs = exp.generate()
         assert len(runs) > 0
+
+
+class TestGetTguPath:
+    def test_returns_existing_file_path(self):
+        exp = Experiment()
+        exp.add_factor("a", ["1", "2", "3"])
+        path = exp.get_tgu_path()
+        assert os.path.exists(path)
+        exp.cleanup()
+
+    def test_same_path_on_repeated_calls(self):
+        exp = Experiment()
+        exp.add_factor("a", ["1", "2", "3"])
+        p1 = exp.get_tgu_path()
+        p2 = exp.get_tgu_path()
+        assert p1 == p2
+        exp.cleanup()
+
+    def test_cleanup_removes_file(self):
+        exp = Experiment()
+        exp.add_factor("a", ["1", "2", "3"])
+        path = exp.get_tgu_path()
+        assert os.path.exists(path)
+        exp.cleanup()
+        assert not os.path.exists(path)
+
+    def test_cleanup_is_idempotent(self):
+        exp = Experiment()
+        exp.add_factor("a", ["1", "2", "3"])
+        exp.get_tgu_path()
+        exp.cleanup()
+        exp.cleanup()  # must not raise
 
 
 class TestContextManager:
