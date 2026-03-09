@@ -15,7 +15,7 @@
 - ✅ **L8 (2^7)**: Verified orthogonal array  
 - ✅ **L9 (3^4)**: Verified orthogonal array
 - ✅ **L16 (2^15)**: Verified orthogonal array
-- ⚠️ **L27 (3^13)**: Exists but orthogonality verification pending mathematical construction
+- ✅ **L27 (3^13)**: Verified orthogonal array
 - ✅ **API Functions**: Array lookup, listing, info retrieval
 
 #### 3. Parser Module
@@ -63,27 +63,26 @@
 #### 9. CLI Module (Complete)
 - **Status**: ✅ Complete
 - **Files**: `src/cli/main.c`
-- **Commands**: `generate`, `run`, `validate`, `list-arrays`, `help`, `--version`
+- **Commands**: `generate`, `run`, `validate`, `list-arrays`, `analyze`, `effects`, `help`, `--version`
 - **Features**:
   - Process execution for each experimental run using fork/wait
   - Environment variable setting for factor values (`TAGUCHI_<factor_name>=<value>`)
   - Run ID available as `TAGUCHI_RUN_ID` environment variable
   - External command execution with proper argument passing
+  - Main effects analysis and optimal configuration recommendations
+  - Multi-column CSV support with `--metric <name>` flag
   - Error handling and validation
 
-#### 10. API Client Examples (Complete)
+#### 10. Language Bindings (Complete)
 - **Status**: ✅ Complete
-- **Files**: `examples/python/`, `examples/nodejs/`, `examples/DOCUMENTATION.md`
-- **Languages**: Python, Node.js
+- **Files**: `bindings/python/`, `examples/nodejs/`
+- **Languages**: Python (subprocess-based), Node.js (ffi-napi)
 - **Features**:
-  - Python ctypes interface to C library with basic and advanced examples
-  - Node.js ffi-napi interface to C library with basic and advanced examples
-  - Proper error handling and resource management in both languages
-  - File-based and programmatic workflow examples
-  - Async execution patterns for Node.js
-  - Complete usage demonstrations and comprehensive documentation
-  - Workflow classes for complex experiment management
-  - Batch processing capabilities for multiple experiments
+  - Python `Experiment` and `Analyzer` classes wrapping the CLI
+  - Node.js ffi-napi interface to C shared library
+  - Full workflow: define factors → generate runs → collect results → analyze
+  - Context manager support for automatic resource cleanup
+  - Installable Python package (`pyproject.toml`)
 
 ## Internal Module Interactions
 
@@ -195,24 +194,19 @@ int function_name(params..., char *error_buf) {
 
 ### Phase Completion Status
 - ✅ **Phase 1**: Core Library Infrastructure (utilities, config)
-- ✅ **Phase 2**: Parsing and Arrays (partial - L27 verification pending)  
+- ✅ **Phase 2**: Parsing and Arrays (all 19 arrays verified: L4–L3125)
 - ✅ **Phase 3**: Generation and Serialization
-- 🔄 **Phase 4**: Analysis Module (next priority)
-- 📋 **Phase 5**: CLI Implementation (future)
-- 📋 **Phase 6**: Language Bindings (future) 
-- 📋 **Phase 7**: Polish and Release (future)
+- ✅ **Phase 4**: Analysis Module (main effects, recommendations, multi-column CSV)
+- ✅ **Phase 5**: CLI Implementation (generate, run, validate, list-arrays, analyze, effects)
+- ✅ **Phase 6**: Language Bindings (Python subprocess-based, Node.js ffi-napi)
+- ✅ **Phase 7**: Security hardening, static CLI binary, dynamic file reading
 
-### Current Focus: Analysis Module Implementation
-- **Priority**: Calculate main effects from experimental results
-- **Scope**: Statistical analysis algorithms
-- **API**: Complete the results and analysis functions in public header
-
-## Next Development Steps
-
-### Immediate Priorities
-1. **Analysis Module** (`analyzer.c/h`) - Statistical calculations
-2. **Results Module** - Experimental result management  
-3. **Complete API** - Implement remaining public functions
+### Current Version: v1.4.1
+- Multi-column CSV metric selection (`--metric` flag on analyze/effects)
+- Security hardening: dynamic file reading, `setenv()`, CSV buffer expansion, 16 security tests
+- GF(5) series added (L25, L125, L625, L3125)
+- Column pairing and mixed-level support
+- Full analysis pipeline with main effects and recommendations
 
 ### Architectural Decisions Made
 - **Modularity**: Clear separation of concerns between modules

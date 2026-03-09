@@ -2,6 +2,27 @@
 
 All notable changes to the Taguchi Array Tool project.
 
+## [Unreleased]
+### Added
+- **Python bindings** (`bindings/python/`): `Experiment` and `Analyzer` classes
+  wrapping the `taguchi` CLI via subprocess. Installable as a Python package
+  via `pip install bindings/python/`. Includes `demo.py` and full README.
+
+## [v1.4.1] - 2026-03-03
+### Fixed
+- **Effects bucketing bug with duplicate factor value strings**: when a factor
+  lists duplicate value strings to fill a multi-level OA column (e.g.
+  `["lo","lo","lo","med","med","med","hi","hi","hi"]` for a 9-level paired
+  column), the analyzer's string-matching loop always found the first
+  occurrence of each string, leaving most level buckets at 0.0 and wildly
+  understating effect magnitudes. Fixed by storing the post-modulo OA level
+  index in `ExperimentRun.level_indices[]` at generation time and using it
+  directly in `calculate_main_effects()` instead of scanning for a string match.
+### Tests
+- `analyzer_duplicate_values_9level`: L81, 3-unique-of-9 factor regression test
+- `analyzer_duplicate_values_5level`: L25, 3-unique-of-5 factor regression test
+- Total: 108 tests passing, valgrind clean
+
 ## [v1.4.0] - 2026-03-03
 ### Fixed
 - **Multi-column CSV support for `effects` and `analyze`**: the CSV parser in both

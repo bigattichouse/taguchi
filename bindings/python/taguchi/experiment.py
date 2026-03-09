@@ -55,6 +55,8 @@ class Experiment:
     
     def _initialize(self) -> None:
         """Initialize experiment and determine array type."""
+        if not self._factors:
+            raise TaguchiError("No factors defined")
         if self._array_type is None:
             num_factors = len(self._factors)
             max_levels = max(len(levels) for levels in self._factors.values())

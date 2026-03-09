@@ -30,7 +30,7 @@ class Taguchi:
         possible_paths = []
         
         if cli_path:
-            possible_paths.append(cli_path)
+            possible_paths.append(Path(cli_path))
         
         # Search relative to this file (taguchi_bindings -> ../../../build/taguchi)
         current_dir = Path(__file__).parent

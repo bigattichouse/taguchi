@@ -89,21 +89,10 @@ class Analyzer:
     def recommend_optimal(self, higher_is_better: bool = True) -> Dict[str, str]:
         """Recommend optimal factor levels based on main effects."""
         effects = self.main_effects()
-        runs = self._experiment.generate()
-        
-        if not runs:
-            raise TaguchiError("No runs generated")
-        
-        factor_levels: Dict[str, List[str]] = {}
-        for run in runs:
-            for factor, level in run["factors"].items():
-                if factor not in factor_levels:
-                    factor_levels[factor] = []
-                if level not in factor_levels[factor]:
-                    factor_levels[factor].append(level)
-        
-        for factor in factor_levels:
-            factor_levels[factor].sort()
+
+        # Use definition order from the experiment — the OA level indices (L1, L2, L3)
+        # correspond to the order levels were defined, not alphabetical order.
+        factor_levels: Dict[str, List[str]] = self._experiment.factors
         
         optimal = {}
         for effect in effects:
