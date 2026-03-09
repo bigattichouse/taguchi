@@ -7,6 +7,38 @@ All notable changes to the Taguchi Array Tool project.
 - **Python bindings** (`bindings/python/`): `Experiment` and `Analyzer` classes
   wrapping the `taguchi` CLI via subprocess. Installable as a Python package
   via `pip install bindings/python/`. Includes `demo.py` and full README.
+- **Python bindings test suite** (`bindings/python/tests/`): 109 tests covering
+  CLI discovery, run generation, effects parsing, context manager cleanup,
+  recommend_optimal correctness, and full end-to-end workflows.
+
+### Fixed (Python bindings)
+- `_find_cli`: string `cli_path` was not wrapped in `Path()` before calling
+  `.exists()` — caused `AttributeError` when an explicit path was provided
+- `Experiment._initialize()`: crashed with bare `ValueError` on empty factor
+  dict instead of raising `TaguchiError`
+- `Analyzer.recommend_optimal()`: sorted factor levels alphabetically, which
+  misaligned them with OA level indices (L1/L2/L3 = definition order) and
+  returned the wrong optimal level
+
+### Hardened (Python bindings)
+- **Input validation**: `add_factor()` now rejects empty names, names containing
+  `=`, `#`, `:`, spaces, or commas; rejects empty level lists and non-string values
+- **Resource safety**: `Experiment` and `Analyzer` both have `__del__` finalizers
+  so temporary files are cleaned up even when context managers are not used;
+  public `cleanup()` / `get_tgu_path()` API replaces private `_ensure_tgu_file()`
+- **Metric passthrough**: `effects()` now correctly passes `--metric <name>` to
+  the CLI (was silently omitted, meaning custom metric names were ignored)
+- **Empty-results guard**: `main_effects()` raises `TaguchiError("No results added")`
+  immediately instead of producing a cryptic CLI error
+- **Subprocess timeout**: all CLI calls time out after 30 s with a clear error
+- **Cross-platform CLI discovery**: replaced `which taguchi` with `shutil.which()`
+- **`from_tgu` robustness**: now strips inline `#` comments, skips blank lines,
+  and raises `TaguchiError` if no factors are found (was silently empty)
+- **Effects parser**: regex now handles negative and scientific-notation level
+  means; raises if CLI output produces no parseable effects
+- **`list-arrays` parser**: raises if output contains no recognisable array lines
+- **`demo.py`**: updated to use context managers — the canonical example no
+  longer demonstrates a resource leak
 
 ## [v1.4.1] - 2026-03-03
 ### Fixed
