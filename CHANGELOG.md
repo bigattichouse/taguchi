@@ -2,6 +2,30 @@
 
 All notable changes to the Taguchi Array Tool project.
 
+## [v1.7.0] - 2026-03-27
+
+### Added
+- **L18 mixed-level array**: Hardcoded standard table (Taguchi 1987) for
+  experiments with 1 factor at 2 levels and up to 7 factors at 3 levels
+  (18 runs). Covers the common case where a binary factor is combined with
+  several 3-level process parameters, saving 9 runs vs the next pure GF(3)
+  array (L27).
+- **`suggest-array` CLI subcommand**: `taguchi suggest-array <file.tgu>` prints
+  the recommended array name, providing a single source of truth so the Python
+  binding no longer needs to re-implement the selection logic.
+- **`make test-python` / `make test-all`**: New Makefile targets to run the
+  pytest suite in `bindings/python/tests/` and both C + Python suites together.
+- **7 new tests** in `tests/test_arrays.c` covering L18 structure, value ranges,
+  per-column balance, and full pairwise orthogonality verification.
+
+### Changed
+- `OrthogonalArray` struct gains a `col_levels` field (NULL = homogeneous);
+  `levels = 0` signals a mixed-level array.
+- `suggest_optimal_array()` considers mixed-level arrays as candidates only when
+  the experiment itself has factors at more than one distinct level count.
+- `list-arrays` displays `mixed` instead of `0 levels` for L18.
+- `MAX_ARRAYS` bumped from 20 to 21.
+
 ## [v1.6.0] - 2026-03-09
 ### Added - Enhanced Python Bindings 🚀
 - **Phase 1: Critical Infrastructure**

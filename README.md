@@ -34,10 +34,11 @@ This design ensures that each factor's levels are evenly distributed and balance
 
 ## Features
 
-- **Orthogonal Array Support**: 
+- **Orthogonal Array Support**:
   - GF(2) series: L4, L8, L16, L32, L64, L128, L256, L512, L1024 (2-level)
   - GF(3) series: L9, L27, L81, L243, L729, L2187 (3-level)
   - GF(5) series: L25, L125, L625, L3125 (5-level)
+  - Mixed-level: **L18** (1 factor × 2 levels + up to 7 factors × 3 levels, 18 runs)
 - **Smart Auto-Selection**: Prefers arrays with 50-200% capacity margin for better statistical power, with exact level matching prioritized
 - **Column Pairing**: Multi-level factors (4-27 levels) via automatic column pairing/tripling
 - **Mixed-Level Support**: Factors with different level counts in the same experiment
@@ -69,7 +70,7 @@ The Taguchi Array Tool has been successfully implemented as per the original spe
 - **Serializer**: JSON serialization for language bindings
 - **Analyzer**: Statistical analysis and main effects calculation
 - **Public API**: Complete facade connecting all modules
-- **CLI**: Command-line interface with generate, run, analyze, effects, validate, list-arrays commands
+- **CLI**: Command-line interface with generate, run, analyze, effects, validate, suggest-array, list-arrays commands
 
 ### 🔄 **Active Development**
 - **Language Bindings**: Python and Node.js examples implemented
@@ -117,7 +118,34 @@ array: L9
 
 # Minimize a metric (e.g., latency)
 ./taguchi analyze experiment.tgu results.csv --metric latency --minimize
+
+# Ask the tool which array it would pick for a given .tgu file
+./taguchi suggest-array experiment.tgu
 ```
+
+### Mixed-Level Experiments (L18)
+
+L18 is the standard array for experiments that combine one 2-level factor with up
+to seven 3-level factors — 18 runs instead of 27 (the next pure GF(3) array).
+
+```bash
+# hot_glue.tgu — one binary factor + six 3-level process parameters
+factors:
+  wax_type: beeswax, carnauba
+  temp: low, medium, high
+  pressure: 10psi, 20psi, 30psi
+  time: 30s, 60s, 90s
+  humidity: 40%, 60%, 80%
+  binder: type_a, type_b, type_c
+array: L18
+
+./taguchi generate hot_glue.tgu    # 18 runs, perfectly balanced
+./taguchi analyze hot_glue.tgu results.csv
+```
+
+The 2-level factor must be listed anywhere in the factors block — the tool
+automatically assigns it to the 2-level column and all 3-level factors to
+the 3-level columns.
 
 ### Column Pairing for Multi-Level Factors
 

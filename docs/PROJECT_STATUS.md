@@ -8,7 +8,7 @@ The Taguchi Array Tool project has been fully implemented according to the origi
 
 ### **Modules Implemented**
 1. **Infrastructure** (`utils.c/h`) - Memory management, error handling, utilities
-2. **Arrays** (`arrays.c/h`) - Orthogonal arrays (L4, L8, L9, L16, L27*) 
+2. **Arrays** (`arrays.c/h`) - Orthogonal arrays (L4, L8, L9, L16, L18, L27*, GF(2)/GF(3)/GF(5) series)
 3. **Parser** (`parser.c/h`) - YAML-like `.tgu` file parsing
 4. **Generator** (`generator.c/h`) - Experiment run mapping
 5. **Serializer** (`serializer.c/h`) - JSON serialization for bindings
@@ -22,7 +22,10 @@ The Taguchi Array Tool project has been fully implemented according to the origi
 - `generate <file.tgu>` - Generate experiment runs from definition
 - `run <file.tgu> <script.sh>` - Execute external script for each experimental run
 - `validate <file.tgu>` - Validate experiment definition
-- `list-arrays` - List available orthogonal arrays  
+- `suggest-array <file.tgu>` - Print the recommended orthogonal array name
+- `list-arrays` - List available orthogonal arrays
+- `analyze <file.tgu> <results.csv>` - Main effects analysis and optimal configuration
+- `effects <file.tgu> <results.csv>` - Main effects table
 - `--help`, `--version` - Information commands
 
 ### **API Functions Available**

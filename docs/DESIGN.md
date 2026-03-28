@@ -12,11 +12,13 @@
 
 #### 2. Array Module
 - ✅ **L4 (2^3)**: Verified orthogonal array
-- ✅ **L8 (2^7)**: Verified orthogonal array  
+- ✅ **L8 (2^7)**: Verified orthogonal array
 - ✅ **L9 (3^4)**: Verified orthogonal array
 - ✅ **L16 (2^15)**: Verified orthogonal array
+- ✅ **L18 (2^1 × 3^7)**: Mixed-level array — 18 runs, hardcoded standard table
 - ✅ **L27 (3^13)**: Verified orthogonal array
 - ✅ **API Functions**: Array lookup, listing, info retrieval
+- ✅ **Mixed-level support**: `col_levels` per-column metadata; `mixed_array_can_fit()`
 
 #### 3. Parser Module
 - ✅ **File Format**: YAML-like parsing for `.tgu` files
@@ -63,7 +65,7 @@
 #### 9. CLI Module (Complete)
 - **Status**: ✅ Complete
 - **Files**: `src/cli/main.c`
-- **Commands**: `generate`, `run`, `validate`, `list-arrays`, `analyze`, `effects`, `help`, `--version`
+- **Commands**: `generate`, `run`, `validate`, `suggest-array`, `list-arrays`, `analyze`, `effects`, `help`, `--version`
 - **Features**:
   - Process execution for each experimental run using fork/wait
   - Environment variable setting for factor values (`TAGUCHI_<factor_name>=<value>`)
@@ -200,13 +202,14 @@ int function_name(params..., char *error_buf) {
 - ✅ **Phase 5**: CLI Implementation (generate, run, validate, list-arrays, analyze, effects)
 - ✅ **Phase 6**: Language Bindings (Python subprocess-based, Node.js ffi-napi)
 - ✅ **Phase 7**: Security hardening, static CLI binary, dynamic file reading
+- ✅ **Phase 8**: L18 mixed-level array, `suggest-array` CLI command, `make test-python`
 
-### Current Version: v1.4.1
-- Multi-column CSV metric selection (`--metric` flag on analyze/effects)
-- Security hardening: dynamic file reading, `setenv()`, CSV buffer expansion, 16 security tests
-- GF(5) series added (L25, L125, L625, L3125)
-- Column pairing and mixed-level support
-- Full analysis pipeline with main effects and recommendations
+### Current Version: v1.7.0
+- L18 mixed-level array: hardcoded standard table, mixed column assignment, orthogonality verified
+- `suggest-array` CLI subcommand — single source of truth for array auto-selection
+- `make test-python` / `make test-all` Makefile targets for pytest suite
+- `OrthogonalArray.col_levels` per-column level metadata; `mixed_array_can_fit()`
+- Previous: Multi-column CSV metric selection, GF(5) series, column pairing, security hardening
 
 ### Architectural Decisions Made
 - **Modularity**: Clear separation of concerns between modules
