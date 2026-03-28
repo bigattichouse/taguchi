@@ -22,6 +22,7 @@ static void print_usage(const char *program_name) {
         "  analyze <file.tgu> <results.csv> Analyze experimental results\n"
         "  effects <file.tgu> <results.csv> Calculate main effects\n"
         "  validate <file.tgu>     Validate experiment definition\n"
+        "  suggest-array <file.tgu> Suggest optimal orthogonal array\n"
         "  list-arrays             List available orthogonal arrays\n"
         "  --help                  Show this help message\n"
         "  --version               Show version information\n"
@@ -59,8 +60,13 @@ static int cmd_list_arrays(int argc, char *argv[]) {
     for (int i = 0; arrays[i] != NULL; i++) {
         size_t rows, cols, levels;
         if (taguchi_get_array_info(arrays[i], &rows, &cols, &levels) == 0) {
-            printf("  %-5s (%3zu runs, %3zu cols, %zu levels)\n",
-                   arrays[i], rows, cols, levels);
+            if (levels == 0) {
+                printf("  %-5s (%3zu runs, %3zu cols, mixed)\n",
+                       arrays[i], rows, cols);
+            } else {
+                printf("  %-5s (%3zu runs, %3zu cols, %zu levels)\n",
+                       arrays[i], rows, cols, levels);
+            }
         } else {
             printf("  %s\n", arrays[i]);
         }
@@ -126,6 +132,37 @@ static int cmd_generate(int argc, char *argv[]) {
     taguchi_free_runs(runs, count);
     taguchi_free_definition(def);
     
+    return 0;
+}
+
+static int cmd_suggest_array(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Error: suggest-array command requires .tgu file\n");
+        print_usage(argv[0]);
+        return 1;
+    }
+
+    const char *filename = argv[1];
+    char *content = read_file_dynamic(filename);
+    if (!content) return 1;
+
+    char error[TAGUCHI_ERROR_SIZE];
+    taguchi_experiment_def_t *def = taguchi_parse_definition(content, error);
+    free(content);
+    if (!def) {
+        fprintf(stderr, "Error: Invalid .tgu file %s: %s\n", filename, error);
+        return 1;
+    }
+
+    const char *array_name = taguchi_suggest_optimal_array(def, error);
+    if (!array_name) {
+        fprintf(stderr, "Error: %s\n", error);
+        taguchi_free_definition(def);
+        return 1;
+    }
+
+    printf("%s\n", array_name);
+    taguchi_free_definition(def);
     return 0;
 }
 
@@ -665,6 +702,8 @@ int main(int argc, char *argv[]) {
         return cmd_generate(sub_argc, sub_argv);
     } else if (strcmp(command, "validate") == 0) {
         return cmd_validate(sub_argc, sub_argv);
+    } else if (strcmp(command, "suggest-array") == 0) {
+        return cmd_suggest_array(sub_argc, sub_argv);
     } else if (strcmp(command, "run") == 0) {
         return cmd_run(sub_argc, sub_argv);
     } else if (strcmp(command, "analyze") == 0) {

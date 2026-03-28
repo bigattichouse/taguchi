@@ -9,10 +9,11 @@
 /* Orthogonal array structure (internal) */
 typedef struct {
     const char *name;
-    size_t rows;      /* Number of experiments */
-    size_t cols;      /* Number of factors */
-    size_t levels;    /* Levels per factor (2 or 3) */
-    const int *data;  /* Row-major array */
+    size_t rows;           /* Number of experiments */
+    size_t cols;           /* Number of factors */
+    size_t levels;         /* Levels per factor (0 = mixed) */
+    const int *data;       /* Row-major array */
+    const int *col_levels; /* Per-column level count; NULL = use `levels` for all */
 } OrthogonalArray;
 
 /* Lookup array by name */
@@ -32,5 +33,8 @@ size_t columns_needed_for_factor(size_t level_count, size_t base_levels);
 
 /* Calculate total OA columns needed for all factors */
 size_t total_columns_needed(const ExperimentDef *def, size_t base_levels);
+
+/* Check if a mixed-level array can accommodate the given factors */
+bool mixed_array_can_fit(const OrthogonalArray *array, const ExperimentDef *def);
 
 #endif /* ARRAYS_H */

@@ -23,33 +23,40 @@ TEST(get_array_null) {
 TEST(list_arrays_valid) {
     const char **names = list_array_names();
     ASSERT_NOT_NULL(names);
-    /* GF(2) series, GF(3) series, GF(5) series */
+    /* Static arrays */
     ASSERT_STR_EQ(names[0], "L4");
     ASSERT_STR_EQ(names[1], "L8");
     ASSERT_STR_EQ(names[2], "L9");
     ASSERT_STR_EQ(names[3], "L16");
-    ASSERT_STR_EQ(names[4], "L32");
-    ASSERT_STR_EQ(names[5], "L64");
-    ASSERT_STR_EQ(names[6], "L128");
-    ASSERT_STR_EQ(names[7], "L256");
-    ASSERT_STR_EQ(names[8], "L512");
-    ASSERT_STR_EQ(names[9], "L1024");
-    ASSERT_STR_EQ(names[10], "L27");
-    ASSERT_STR_EQ(names[11], "L81");
-    ASSERT_STR_EQ(names[12], "L243");
-    ASSERT_STR_EQ(names[13], "L729");
-    ASSERT_STR_EQ(names[14], "L2187");
-    ASSERT_STR_EQ(names[15], "L25");
-    ASSERT_STR_EQ(names[16], "L125");
-    ASSERT_STR_EQ(names[17], "L625");
-    ASSERT_STR_EQ(names[18], "L3125");
-    ASSERT_NULL(names[19]);
+    ASSERT_STR_EQ(names[4], "L18");
+    /* GF(2) series */
+    ASSERT_STR_EQ(names[5], "L32");
+    ASSERT_STR_EQ(names[6], "L64");
+    ASSERT_STR_EQ(names[7], "L128");
+    ASSERT_STR_EQ(names[8], "L256");
+    ASSERT_STR_EQ(names[9], "L512");
+    ASSERT_STR_EQ(names[10], "L1024");
+    /* GF(3) series */
+    ASSERT_STR_EQ(names[11], "L27");
+    ASSERT_STR_EQ(names[12], "L81");
+    ASSERT_STR_EQ(names[13], "L243");
+    ASSERT_STR_EQ(names[14], "L729");
+    ASSERT_STR_EQ(names[15], "L2187");
+    /* GF(5) series */
+    ASSERT_STR_EQ(names[16], "L25");
+    ASSERT_STR_EQ(names[17], "L125");
+    ASSERT_STR_EQ(names[18], "L625");
+    ASSERT_STR_EQ(names[19], "L3125");
+    ASSERT_NULL(names[20]);
 }
 
 // Helper function to check the balance property of an orthogonal array
 void check_orthogonality(const OrthogonalArray *array) {
     if (array->cols < 2) {
         return; // Nothing to check
+    }
+    if (array->col_levels != NULL) {
+        return; // Mixed-level arrays are checked by check_l18_orthogonality
     }
 
     size_t levels = array->levels;
@@ -118,6 +125,94 @@ TEST(l16_is_orthogonal) {
 TEST(l27_is_orthogonal) {
     const OrthogonalArray *array = get_array("L27");
     check_orthogonality(array);
+}
+
+TEST(get_array_l18) {
+    const OrthogonalArray *array = get_array("L18");
+    ASSERT_NOT_NULL(array);
+    ASSERT_STR_EQ(array->name, "L18");
+    ASSERT_EQ(array->rows, 18);
+    ASSERT_EQ(array->cols, 8);
+    ASSERT_EQ(array->levels, 0);        /* 0 = mixed */
+    ASSERT_NOT_NULL(array->col_levels);
+    ASSERT_EQ((size_t)array->col_levels[0], 2);  /* col 0: 2-level */
+    ASSERT_EQ((size_t)array->col_levels[1], 3);  /* cols 1-7: 3-level */
+    ASSERT_EQ((size_t)array->col_levels[7], 3);
+}
+
+TEST(l18_col0_values_in_range) {
+    const OrthogonalArray *array = get_array("L18");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        int val = array->data[r * array->cols + 0];
+        ASSERT(val >= 0 && val < 2);
+    }
+}
+
+TEST(l18_col1to7_values_in_range) {
+    const OrthogonalArray *array = get_array("L18");
+    ASSERT_NOT_NULL(array);
+    for (size_t r = 0; r < array->rows; r++) {
+        for (size_t c = 1; c < array->cols; c++) {
+            int val = array->data[r * array->cols + c];
+            ASSERT(val >= 0 && val < 3);
+        }
+    }
+}
+
+TEST(l18_col0_balanced) {
+    /* Col 0 is 2-level: each level appears 9 times */
+    const OrthogonalArray *array = get_array("L18");
+    ASSERT_NOT_NULL(array);
+    size_t counts[2] = {0, 0};
+    for (size_t r = 0; r < array->rows; r++) {
+        int val = array->data[r * array->cols + 0];
+        counts[val]++;
+    }
+    ASSERT_EQ(counts[0], 9);
+    ASSERT_EQ(counts[1], 9);
+}
+
+TEST(l18_3level_cols_balanced) {
+    /* Cols 1-7 are 3-level: each level appears 6 times per column */
+    const OrthogonalArray *array = get_array("L18");
+    ASSERT_NOT_NULL(array);
+    for (size_t c = 1; c < array->cols; c++) {
+        size_t counts[3] = {0, 0, 0};
+        for (size_t r = 0; r < array->rows; r++) {
+            int val = array->data[r * array->cols + c];
+            counts[val]++;
+        }
+        ASSERT_EQ(counts[0], 6);
+        ASSERT_EQ(counts[1], 6);
+        ASSERT_EQ(counts[2], 6);
+    }
+}
+
+TEST(l18_is_orthogonal) {
+    /* Every pair of columns should be balanced:
+     * (col0, colN): each (2-level, 3-level) combination appears 3 times.
+     * (colM, colN) both 3-level: each combination appears 2 times. */
+    const OrthogonalArray *array = get_array("L18");
+    ASSERT_NOT_NULL(array);
+    for (size_t c1 = 0; c1 < array->cols; c1++) {
+        for (size_t c2 = c1 + 1; c2 < array->cols; c2++) {
+            int lv1 = array->col_levels[c1];
+            int lv2 = array->col_levels[c2];
+            size_t expected = (size_t)array->rows / ((size_t)lv1 * (size_t)lv2);
+            size_t pair_counts[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
+            for (size_t r = 0; r < array->rows; r++) {
+                int v1 = array->data[r * array->cols + c1];
+                int v2 = array->data[r * array->cols + c2];
+                pair_counts[v1][v2]++;
+            }
+            for (int i = 0; i < lv1; i++) {
+                for (int j = 0; j < lv2; j++) {
+                    ASSERT_EQ(pair_counts[i][j], expected);
+                }
+            }
+        }
+    }
 }
 
 TEST(get_array_l81) {

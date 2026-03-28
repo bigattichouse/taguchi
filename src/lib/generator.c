@@ -114,7 +114,21 @@ bool check_array_compatibility(const ExperimentDef *def, const OrthogonalArray *
         return false;
     }
 
-    /* Check total columns needed (with column pairing) against available columns */
+    /* Mixed-level array: each factor must match a column by exact level count */
+    if (array->col_levels != NULL) {
+        if (!mixed_array_can_fit(array, def)) {
+            if (error_buf) {
+                set_error(error_buf, "Array %s cannot accommodate the given factors. "
+                         "It supports columns: col0=2-level, cols1-7=3-level. "
+                         "Each factor must have a matching-level column available.",
+                         array->name);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /* Homogeneous array: check total columns needed (with column pairing) */
     size_t needed = total_columns_needed(def, array->levels);
     if (needed > array->cols) {
         if (error_buf) {
@@ -170,12 +184,38 @@ int generate_experiments(const ExperimentDef *def, ExperimentRun **runs_out, siz
      */
     size_t col_start[MAX_FACTORS];  /* first OA column for each factor */
     size_t col_count[MAX_FACTORS];  /* number of OA columns for each factor */
-    size_t next_col = 0;
 
-    for (size_t i = 0; i < def->factor_count; i++) {
-        col_count[i] = columns_needed_for_factor(def->factors[i].level_count, array->levels);
-        col_start[i] = next_col;
-        next_col += col_count[i];
+    if (array->col_levels != NULL) {
+        /*
+         * Mixed-level array (e.g. L18): assign each factor to the first
+         * available column whose level count exactly matches the factor's
+         * level count.  Each factor always occupies exactly 1 column.
+         */
+        bool col_used[64];
+        memset(col_used, 0, sizeof(col_used));
+
+        for (size_t i = 0; i < def->factor_count; i++) {
+            size_t needed = def->factors[i].level_count;
+            col_count[i] = 1;
+            col_start[i] = array->cols; /* sentinel */
+
+            for (size_t c = 0; c < array->cols && c < 64; c++) {
+                if (!col_used[c] && (size_t)array->col_levels[c] == needed) {
+                    col_start[i] = c;
+                    col_used[c] = true;
+                    break;
+                }
+            }
+            /* check_array_compatibility already verified every factor can be placed */
+        }
+    } else {
+        /* Homogeneous array: sequential assignment with column pairing */
+        size_t next_col = 0;
+        for (size_t i = 0; i < def->factor_count; i++) {
+            col_count[i] = columns_needed_for_factor(def->factors[i].level_count, array->levels);
+            col_start[i] = next_col;
+            next_col += col_count[i];
+        }
     }
 
     /* Allocate runs array */

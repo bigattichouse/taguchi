@@ -45,7 +45,7 @@ SHARED_LIB ?= $(BUILD_DIR)/$(SHARED_LIB_BASE)
 STATIC_LIB ?= $(BUILD_DIR)/libtaguchi.a
 CLI_TARGET ?= $(BUILD_DIR)/taguchi
 
-.PHONY: all lib cli test check install install-cli reinstall uninstall clean
+.PHONY: all lib cli test test-python test-all check install install-cli reinstall uninstall clean
 
 all: lib cli
 
@@ -142,12 +142,26 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 # Python bindings
-.PHONY: python-install python-test
+.PHONY: python-install python-test test-python test-all
 python-install: lib
 	cd bindings/python && python3 setup.py install --user
 
 python-test: python-install
 	cd bindings/python && python3 test_taguchi.py
+
+# Run the pytest-based Python test suite (requires: pip install pytest in bindings/python/.venv)
+test-python: lib cli
+	@if [ -f bindings/python/.venv/bin/pytest ]; then \
+		cd bindings/python && .venv/bin/pytest tests/ -v; \
+	elif command -v pytest >/dev/null 2>&1; then \
+		cd bindings/python && pytest tests/ -v; \
+	else \
+		echo "No pytest found. Run: cd bindings/python && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'"; \
+		exit 1; \
+	fi
+
+# Run both C and Python test suites
+test-all: test test-python
 
 # Node bindings
 .PHONY: node-install node-test

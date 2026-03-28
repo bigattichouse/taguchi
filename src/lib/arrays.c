@@ -56,6 +56,34 @@ static const int L16_data[] = {
     1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
 };
 
+/*
+ * L18(2^1 x 3^7): mixed-level array, 18 runs.
+ * Column 0 is 2-level; columns 1-7 are 3-level.
+ * Standard published table (Taguchi 1987, Peace 1993), 0-indexed.
+ */
+static const int L18_data[] = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 1, 1, 1, 1, 1, 1,
+    0, 0, 2, 2, 2, 2, 2, 2,
+    0, 1, 0, 0, 1, 1, 2, 2,
+    0, 1, 1, 1, 2, 2, 0, 0,
+    0, 1, 2, 2, 0, 0, 1, 1,
+    0, 2, 0, 1, 0, 2, 1, 2,
+    0, 2, 1, 2, 1, 0, 2, 0,
+    0, 2, 2, 0, 2, 1, 0, 1,
+    1, 0, 0, 2, 2, 1, 1, 0,
+    1, 0, 1, 0, 0, 2, 2, 1,
+    1, 0, 2, 1, 1, 0, 0, 2,
+    1, 1, 0, 1, 2, 0, 2, 1,
+    1, 1, 1, 2, 0, 1, 0, 2,
+    1, 1, 2, 0, 1, 2, 1, 0,
+    1, 2, 0, 2, 1, 2, 0, 1,
+    1, 2, 1, 0, 2, 0, 1, 2,
+    1, 2, 2, 1, 0, 1, 2, 0,
+};
+
+static const int L18_col_levels[] = {2, 3, 3, 3, 3, 3, 3, 3};
+
 /* L27 is generated algorithmically (GF(3)^3) for guaranteed orthogonality */
 
 /*
@@ -234,17 +262,18 @@ static size_t L125_rows = 0, L125_cols = 0;
 static size_t L625_rows = 0, L625_cols = 0;
 static size_t L3125_rows = 0, L3125_cols = 0;
 
-/* Static array entries for predefined 2-level arrays */
-#define NUM_STATIC_ARRAYS 4
+/* Static array entries for predefined arrays */
+#define NUM_STATIC_ARRAYS 5
 static const OrthogonalArray static_arrays[] = {
-    { "L4", 4, 3, 2, L4_data },
-    { "L8", 8, 7, 2, L8_data },
-    { "L9", 9, 4, 3, L9_data },
-    { "L16", 16, 15, 2, L16_data }
+    { "L4",  4,  3, 2, L4_data,  NULL },
+    { "L8",  8,  7, 2, L8_data,  NULL },
+    { "L9",  9,  4, 3, L9_data,  NULL },
+    { "L16", 16, 15, 2, L16_data, NULL },
+    { "L18", 18,  8, 0, L18_data, L18_col_levels },
 };
 
 /* Full array list including generated arrays */
-#define MAX_ARRAYS 20
+#define MAX_ARRAYS 21
 static OrthogonalArray all_arrays[MAX_ARRAYS];
 static size_t all_arrays_count = 0;
 static bool arrays_initialized = false;
@@ -438,6 +467,34 @@ size_t total_columns_needed(const ExperimentDef *def, size_t base_levels) {
     return total;
 }
 
+/*
+ * Check if a mixed-level array (one with col_levels != NULL) can accommodate
+ * the given factors.  Each factor is matched to a column whose level count
+ * exactly equals the factor's level count.  Returns true only if every factor
+ * finds an unoccupied matching column.
+ */
+bool mixed_array_can_fit(const OrthogonalArray *array, const ExperimentDef *def) {
+    if (!array || !array->col_levels || !def) return false;
+    if (array->cols > 64) return false; /* guard – real mixed arrays are small */
+
+    bool col_used[64];
+    memset(col_used, 0, sizeof(col_used));
+
+    for (size_t f = 0; f < def->factor_count; f++) {
+        size_t needed = def->factors[f].level_count;
+        bool found = false;
+        for (size_t c = 0; c < array->cols; c++) {
+            if (!col_used[c] && (size_t)array->col_levels[c] == needed) {
+                col_used[c] = true;
+                found = true;
+                break;
+            }
+        }
+        if (!found) return false;
+    }
+    return true;
+}
+
 /* Get all array structures for internal use */
 const OrthogonalArray *get_all_arrays(size_t *count_out) {
     ensure_arrays_initialized();
@@ -475,8 +532,35 @@ const char *suggest_optimal_array(const ExperimentDef *def, char *error_buf) {
     size_t smallest_fit_rows = 0;
     size_t best_margin_pct = 0;
 
+    /* Check whether the experiment itself is mixed-level (factors at >1 distinct level count) */
+    bool experiment_is_mixed = false;
+    if (def->factor_count > 1) {
+        size_t first_lc = def->factors[0].level_count;
+        for (size_t f = 1; f < def->factor_count; f++) {
+            if (def->factors[f].level_count != first_lc) {
+                experiment_is_mixed = true;
+                break;
+            }
+        }
+    }
+
+    /* First pass: check mixed-level arrays — only when experiment itself is mixed */
+    const OrthogonalArray *best_mixed = NULL;
+    if (experiment_is_mixed) {
+        for (size_t i = 0; i < all_arrays_count; i++) {
+            const OrthogonalArray *array = &all_arrays[i];
+            if (array->col_levels == NULL) continue;
+            if (!mixed_array_can_fit(array, def)) continue;
+            if (best_mixed == NULL || array->rows < best_mixed->rows) {
+                best_mixed = array;
+            }
+        }
+    }
+
+    /* Second pass: check homogeneous arrays */
     for (size_t i = 0; i < all_arrays_count; i++) {
         const OrthogonalArray *array = &all_arrays[i];
+        if (array->col_levels != NULL) continue;  /* skip mixed */
         size_t needed = total_columns_needed(def, array->levels);
 
         if (needed > array->cols) {
@@ -501,19 +585,19 @@ const char *suggest_optimal_array(const ExperimentDef *def, char *error_buf) {
             int current_margin_good = 0;
             if (best_exact_match != NULL) {
                 size_t current_needed = total_columns_needed(def, best_exact_match->levels);
-                size_t current_margin = (best_exact_match->cols >= current_needed) ? 
+                size_t current_margin = (best_exact_match->cols >= current_needed) ?
                     ((best_exact_match->cols - current_needed) * 100 / current_needed) : 0;
                 current_margin_good = (current_margin >= 50 && current_margin <= 200) ? 1 : 0;
             }
-            
+
             if (best_exact_match == NULL) {
                 best_exact_match = array;
             } else if (margin_good && !current_margin_good) {
-                best_exact_match = array;  /* New has good margin, old doesn't */
+                best_exact_match = array;
             } else if (margin_good && current_margin_good && array->rows > best_exact_match->rows) {
-                best_exact_match = array;  /* Both have good margin, prefer larger */
+                best_exact_match = array;
             } else if (!margin_good && !current_margin_good && array->rows < best_exact_match->rows) {
-                best_exact_match = array;  /* Neither has good margin, prefer smaller */
+                best_exact_match = array;
             }
         }
 
@@ -531,16 +615,25 @@ const char *suggest_optimal_array(const ExperimentDef *def, char *error_buf) {
         }
     }
 
-    /* Prefer exact level match if available, otherwise use best margin fit,
-     * or fall back to smallest fit */
+    /* Determine best homogeneous candidate */
+    const OrthogonalArray *best_homo = NULL;
     if (best_exact_match != NULL) {
-        return best_exact_match->name;
+        best_homo = best_exact_match;
+    } else if (best_fit != NULL) {
+        best_homo = best_fit;
+    } else if (smallest_fit != NULL) {
+        best_homo = smallest_fit;
     }
-    if (best_fit != NULL) {
-        return best_fit->name;
+
+    /* Prefer mixed array when it fits and is smaller than the best homogeneous option */
+    if (best_mixed != NULL) {
+        if (best_homo == NULL || best_mixed->rows < best_homo->rows) {
+            return best_mixed->name;
+        }
     }
-    if (smallest_fit != NULL) {
-        return smallest_fit->name;
+
+    if (best_homo != NULL) {
+        return best_homo->name;
     }
 
     /* If no array fits, return NULL with error message */
