@@ -271,11 +271,11 @@ agree; until then E4 is partial, not complete.
 
 | | |
 |---|---|
-| `core/src/linalg.c` | new — `doe_eigen_sym`, cyclic Jacobi, 137 lines |
+| `core/src/linalg.c` | new — `doe_eigen_sym`, cyclic Jacobi, 157 lines |
 | `core/include/doe.h` | +1 declaration, new "Linear algebra" section |
-| `core/tests/test_doe.c` | +4 tests (29 total, valgrind clean) |
+| `core/tests/test_doe.c` | +5 tests (30 total, valgrind clean) |
 | `optimize/rsm/src/cli/main.c` | `solve` → `invert`; classifier replaced; canonical output |
-| `optimize/rsm/tests/test_rsm_cli.sh` | 29 → 56 assertions |
+| `optimize/rsm/tests/test_rsm_cli.sh` | 29 → 58 assertions |
 
 `rsm` is the only caller of `doe_eigen_sym`. Of the 26 committed example
 outputs, only `5-rsm-analysis.txt` changed — every other tool is byte-identical,
@@ -284,3 +284,33 @@ which is the check that says this touched nothing it should not have.
 The tutorial's own temp × time surface now reports `stationary_ridge`. Its
 README described that case as a ridge in prose while the tool called it a
 saddle; the two now agree.
+
+## 10. Convergence, and what the random-matrix test found
+
+The first cut of `doe_eigen_sym` decided it had converged when the sum of
+squares of the off-diagonal fell below `1e-18 · scale²`. That is wrong by a
+square: a threshold on a sum of *squares* that reads as 1e-18 accepts
+individual off-diagonal entries around `1e-9 · scale`, which is real error in
+the eigenvectors rather than rounding. Measured worst residual over 200 random
+symmetric matrices was **2.5e-9**.
+
+It passed every hand-picked test — a diagonal matrix, `[[2,1],[1,2]]`, the rank-1
+ridge, a 3×3 — because all four are well enough conditioned to converge far
+past the sloppy threshold anyway. It failed on the fourth random matrix. The
+lesson is the test, not the tolerance: hand-picked matrices are chosen to make
+the answer checkable, which tends to make them easy.
+
+Now the sweep zeroes any off-diagonal entry too small to change either diagonal
+entry it sits between, so the sum reaches exactly `0.0` and the loop ends on an
+equality with no tolerance to justify. Worst residual over the same 200
+matrices: **1.8e-14**, and the suite's check tightened from 1e-9 to 1e-11 so
+the old behaviour cannot return quietly.
+
+**Coverage.** `linalg.c` 97%, `rsm/src/cli/main.c` 96%. What is left uncovered
+in both is defensive: Jacobi's no-convergence branch (it converges in ~10 of
+its 60 permitted sweeps), the partial-pivot row swap in `invert` (a CCD's
+`XᵀX` never needs one), `t_crit_95`'s `df > 30` fallback (a CCD gives 5 or 7),
+and three error paths that a caller cannot reach because the design matrix is
+generated internally rather than read. Reaching them needs fault injection or
+dead-code removal; neither is worth it, and claiming 100% by deleting the
+guards would be worse than the gap.

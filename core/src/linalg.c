@@ -61,19 +61,39 @@ int doe_eigen_sym(const double *A, size_t n, double *vals, double *vecs,
         for (size_t i = 0; i < n; i++) vals[i] = 0.0;
         return 0;
     }
-    const double tol = 1e-18 * scale * scale;
 
+    /*
+     * Sweep until the off-diagonal is gone, where "gone" means each entry is
+     * negligible against the two diagonal entries it sits between -- an entry
+     * so small that rotating it away would not change either of them in
+     * double precision. Those entries are zeroed outright, so the sum below
+     * reaches exactly 0.0 and the loop terminates on an equality rather than
+     * on a tolerance anyone has to justify.
+     *
+     * Comparing the SUM OF SQUARES against a scale-derived tolerance instead
+     * is the tempting shortcut and it is wrong: squaring means a threshold
+     * that looks like 1e-18 accepts off-diagonal entries around 1e-9, which
+     * is real error in the eigenvectors, not rounding. That mistake survived
+     * three hand-picked test matrices here and only fell over on the fourth
+     * random one.
+     */
     int swept = 0;
     for (; swept < EIGEN_MAX_SWEEPS; swept++) {
         double off = 0.0;
         for (size_t i = 0; i < n; i++)
             for (size_t j = i + 1; j < n; j++) off += a[i * n + j] * a[i * n + j];
-        if (off <= tol) break;
+        if (off == 0.0) break;
 
         for (size_t p = 0; p < n; p++) {
             for (size_t q = p + 1; q < n; q++) {
                 double apq = a[p * n + q];
                 if (apq == 0.0) continue;
+                double big = 100.0 * fabs(apq);
+                if (fabs(a[p * n + p]) + big == fabs(a[p * n + p]) &&
+                    fabs(a[q * n + q]) + big == fabs(a[q * n + q])) {
+                    a[p * n + q] = a[q * n + p] = 0.0;
+                    continue;
+                }
                 /* theta picks the rotation that zeroes (p,q); the sign choice
                  * on t keeps |t| <= 1, which is what makes Jacobi stable. */
                 double theta = (a[q * n + q] - a[p * n + p]) / (2.0 * apq);

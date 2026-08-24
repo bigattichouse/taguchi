@@ -191,6 +191,15 @@ expect_match "no interior optimum" "and says there is none to find" \
 expect_match "ALONG" "and says to move along the ridge, not re-centre on it" \
     "$RSM" analyze "$TMP/s.space" "$TMP/rising.csv"
 
+# A ridge of maxima, asked to MINIMISE, is the worst line rather than the best
+# -- the wrong-kind warning has to survive the ridge branch, not be skipped by
+# it because the verdict is no longer the word "maximum".
+json_is "False" "d['is_the_optimum_sought']" \
+    "a ridge of maxima is NOT what --minimize wanted" \
+    "$RSM" analyze "$TMP/s.space" "$TMP/ridge.csv" --minimize --json
+expect_match "wrong way" "and the ridge says so in words" \
+    "$RSM" analyze "$TMP/s.space" "$TMP/ridge.csv" --minimize
+
 # STABILITY. Perturbing the ridge's curvature by 1e-7 -- far below anything an
 # experiment resolves -- used to flip the verdict between "maximum" and
 # "saddle". Both signs must now land on the same answer.

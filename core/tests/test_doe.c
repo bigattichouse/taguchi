@@ -480,7 +480,10 @@ static int check_eigenpairs(const double *A, size_t n,
         for (size_t r = 0; r < n; r++) {
             double aq = 0.0;
             for (size_t c = 0; c < n; c++) aq += A[r * n + c] * vecs[i * n + c];
-            if (fabs(aq - vals[i] * vecs[i * n + r]) > 1e-9) return 0;
+            /* 1e-11, not 1e-9: the convergence bug this suite caught left
+             * residuals around 2e-9, and a tolerance that admits those admits
+             * the bug. Actual worst case over the random sweep is ~2e-14. */
+            if (fabs(aq - vals[i] * vecs[i * n + r]) > 1e-11) return 0;
         }
         double norm = 0.0;
         for (size_t c = 0; c < n; c++) norm += vecs[i * n + c] * vecs[i * n + c];
@@ -564,6 +567,58 @@ static int test_eigen_is_deterministic_and_sign_normalised(void) {
     A2[1] += 1e-15;
     CHECK(doe_eigen_sym(A2, 3, v2, q2, err) == 0);
     for (size_t i = 0; i < 3; i++) CHECK(fabs(v1[i] - v2[i]) < 1e-12);
+    return 1;
+}
+
+/*
+ * The sign convention, over a spread of matrices rather than one hand-picked
+ * one. A single example only proves the convention holds where no flip was
+ * needed -- which was exactly the hole here: every earlier case happened to
+ * come out of Jacobi already normalised, so the branch that does the flipping
+ * had never run. Sweeping random symmetric input exercises both sides, and
+ * re-checks the whole contract (A q = lambda q, orthonormal, sorted) on
+ * matrices nobody chose to be convenient.
+ */
+static int test_eigen_contract_holds_over_random_matrices(void) {
+    char err[DOE_ERR_SIZE];
+    doe_rng_t rng; doe_rng_seed(&rng, 20260824);
+    int saw_flip = 0;
+
+    for (int trial = 0; trial < 200; trial++) {
+        size_t n = 2 + (size_t)(trial % 3);          /* 2, 3, 4 */
+        double A[16], vals[4], vecs[16];
+        for (size_t i = 0; i < n; i++)
+            for (size_t j = i; j < n; j++) {
+                double v = doe_rng_uniform(&rng) * 20.0 - 10.0;
+                A[i * n + j] = v;
+                A[j * n + i] = v;
+            }
+        CHECK(doe_eigen_sym(A, n, vals, vecs, err) == 0);
+        CHECK(check_eigenpairs(A, n, vals, vecs));
+
+        for (size_t i = 0; i + 1 < n; i++)
+            CHECK(fabs(vals[i]) >= fabs(vals[i + 1]) - 1e-12);
+
+        /* mutually orthogonal, not merely unit length */
+        for (size_t i = 0; i < n; i++)
+            for (size_t j = i + 1; j < n; j++) {
+                double dot = 0.0;
+                for (size_t c = 0; c < n; c++)
+                    dot += vecs[i * n + c] * vecs[j * n + c];
+                CHECK(fabs(dot) < 1e-9);
+            }
+
+        for (size_t i = 0; i < n; i++) {
+            size_t lead = 0;
+            for (size_t c = 1; c < n; c++)
+                if (fabs(vecs[i * n + c]) > fabs(vecs[i * n + lead])) lead = c;
+            CHECK(vecs[i * n + lead] > 0.0);
+            /* a row whose first entry is negative can only have got that way
+             * through the normalising flip */
+            if (vecs[i * n + 0] < 0.0) saw_flip = 1;
+        }
+    }
+    CHECK(saw_flip);          /* the flip branch actually ran */
     return 1;
 }
 
@@ -807,6 +862,7 @@ int main(void) {
     RUN_TEST(test_eigen_diagonal_and_known);
     RUN_TEST(test_eigen_resolves_the_flat_direction);
     RUN_TEST(test_eigen_is_deterministic_and_sign_normalised);
+    RUN_TEST(test_eigen_contract_holds_over_random_matrices);
     RUN_TEST(test_eigen_rejects_and_handles_edges);
     RUN_TEST(test_quantiles);
     RUN_TEST(test_prng_determinism);
