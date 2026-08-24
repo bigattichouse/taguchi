@@ -153,7 +153,14 @@ New tool `rsm/`; `robust funnel --optimize` chains it as the final stage.
 Depends on the E1 least-squares core and pairs naturally with M6's `grid`.
 
 Validation: recovers the known optimum of a synthetic quadratic bowl to
-tolerance; degenerate fits (saddle, rank-deficient) produce clean errors.
+tolerance; degenerate fits (saddle, rank-deficient) produce clean errors;
+a stationary ridge is reported as a ridge rather than as one arbitrary point
+on it, a rising ridge names the direction to move rather than a receding
+stationary point, and a curvature perturbation of 1e-7 does not change the
+verdict. Canonical analysis landed 2026-08-24 —
+see [spec/rsm-canonical-analysis.md](spec/rsm-canonical-analysis.md) for the
+two failures that motivated it and why definiteness tests on the leading
+principal minors could not be patched to catch them.
 
 ## E5. Robust parameter design — noise factors ✓ **BUILT**
 

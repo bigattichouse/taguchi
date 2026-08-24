@@ -469,6 +469,135 @@ static int test_ols_rejects_degenerate(void) {
     return 1;
 }
 
+/* ---- doe_eigen_sym: symmetric eigendecomposition ------------------------- */
+
+/* Every eigenpair must satisfy A q = lambda q. That is the definition, and it
+ * catches an eigenvector that got permuted away from its own eigenvalue by
+ * the sort -- which a check on the eigenvalues alone would not. */
+static int check_eigenpairs(const double *A, size_t n,
+                            const double *vals, const double *vecs) {
+    for (size_t i = 0; i < n; i++) {
+        for (size_t r = 0; r < n; r++) {
+            double aq = 0.0;
+            for (size_t c = 0; c < n; c++) aq += A[r * n + c] * vecs[i * n + c];
+            if (fabs(aq - vals[i] * vecs[i * n + r]) > 1e-9) return 0;
+        }
+        double norm = 0.0;
+        for (size_t c = 0; c < n; c++) norm += vecs[i * n + c] * vecs[i * n + c];
+        if (fabs(norm - 1.0) > 1e-9) return 0;
+    }
+    return 1;
+}
+
+static int test_eigen_diagonal_and_known(void) {
+    char err[DOE_ERR_SIZE];
+    double vals[3], vecs[9];
+
+    /* A diagonal matrix: the eigenvalues are the diagonal, and the ordering
+     * contract puts the largest magnitude first regardless of sign. */
+    double D[9] = { 2.0, 0, 0,  0, -9.0, 0,  0, 0, 0.5 };
+    CHECK(doe_eigen_sym(D, 3, vals, vecs, err) == 0);
+    CHECK(fabs(vals[0] - (-9.0)) < 1e-12);
+    CHECK(fabs(vals[1] - 2.0) < 1e-12);
+    CHECK(fabs(vals[2] - 0.5) < 1e-12);
+    CHECK(check_eigenpairs(D, 3, vals, vecs));
+
+    /* [[2,1],[1,2]] has eigenvalues 3 and 1 along (1,1)/sqrt2 and (1,-1)/sqrt2. */
+    double A[4] = { 2.0, 1.0, 1.0, 2.0 };
+    CHECK(doe_eigen_sym(A, 2, vals, vecs, err) == 0);
+    CHECK(fabs(vals[0] - 3.0) < 1e-12);
+    CHECK(fabs(vals[1] - 1.0) < 1e-12);
+    CHECK(check_eigenpairs(A, 2, vals, vecs));
+    return 1;
+}
+
+/*
+ * The case rsm exists to catch: a singular B, where one eigenvalue is exactly
+ * zero and its eigenvector names the flat direction. Jacobi has to get the
+ * SMALL eigenvalue right, not merely bound it -- a "zero" returned as 1e-3
+ * would read as real curvature to the caller.
+ */
+static int test_eigen_resolves_the_flat_direction(void) {
+    char err[DOE_ERR_SIZE];
+    double vals[2], vecs[4];
+    /* -(u+v)^2 scaled: B = [[-4,-4],[-4,-4]], rank 1, flat along (1,-1). */
+    double B[4] = { -4.0, -4.0, -4.0, -4.0 };
+    CHECK(doe_eigen_sym(B, 2, vals, vecs, err) == 0);
+    CHECK(fabs(vals[0] - (-8.0)) < 1e-12);
+    CHECK(fabs(vals[1]) < 1e-12);                    /* exactly flat */
+    CHECK(check_eigenpairs(B, 2, vals, vecs));
+    /* the flat direction is (1,-1)/sqrt2, up to the sign convention */
+    CHECK(fabs(fabs(vecs[1 * 2 + 0]) - 0.7071067811865476) < 1e-9);
+    CHECK(fabs(fabs(vecs[1 * 2 + 1]) - 0.7071067811865476) < 1e-9);
+    CHECK(fabs(vecs[1 * 2 + 0] + vecs[1 * 2 + 1]) < 1e-9);   /* opposite signs */
+    return 1;
+}
+
+/* The ordering and sign conventions are a contract: JSON output is diffed
+ * against committed files, so the same matrix must decompose identically
+ * every time, and a sign flip of the input's rows must not reorder anything. */
+static int test_eigen_is_deterministic_and_sign_normalised(void) {
+    char err[DOE_ERR_SIZE];
+    double v1[3], q1[9], v2[3], q2[9];
+    double A[9] = { 4.0, 1.0, -2.0,  1.0, 3.0, 0.5,  -2.0, 0.5, -1.0 };
+
+    CHECK(doe_eigen_sym(A, 3, v1, q1, err) == 0);
+    CHECK(doe_eigen_sym(A, 3, v2, q2, err) == 0);
+    for (size_t i = 0; i < 3; i++) CHECK(v1[i] == v2[i]);
+    for (size_t i = 0; i < 9; i++) CHECK(q1[i] == q2[i]);
+
+    /* descending |value| */
+    CHECK(fabs(v1[0]) >= fabs(v1[1]));
+    CHECK(fabs(v1[1]) >= fabs(v1[2]));
+    /* each vector's largest-magnitude component is positive */
+    for (size_t i = 0; i < 3; i++) {
+        size_t lead = 0;
+        for (size_t c = 1; c < 3; c++)
+            if (fabs(q1[i * 3 + c]) > fabs(q1[i * 3 + lead])) lead = c;
+        CHECK(q1[i * 3 + lead] > 0.0);
+    }
+    CHECK(check_eigenpairs(A, 3, v1, q1));
+
+    /* an asymmetric rounding error in the input must not change the answer */
+    double A2[9];
+    memcpy(A2, A, sizeof A2);
+    A2[1] += 1e-15;
+    CHECK(doe_eigen_sym(A2, 3, v2, q2, err) == 0);
+    for (size_t i = 0; i < 3; i++) CHECK(fabs(v1[i] - v2[i]) < 1e-12);
+    return 1;
+}
+
+static int test_eigen_rejects_and_handles_edges(void) {
+    char err[DOE_ERR_SIZE];
+    double vals[3], vecs[9];
+    double A[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+
+    memset(err, 'A', sizeof err);
+    CHECK(doe_eigen_sym(A, 0, vals, vecs, err) != 0);
+    CHECK(memchr(err, '\0', DOE_ERR_SIZE) != NULL);
+    memset(err, 'A', sizeof err);
+    CHECK(doe_eigen_sym(A, 99, vals, vecs, err) != 0);
+    CHECK(memchr(err, '\0', DOE_ERR_SIZE) != NULL);
+
+    double bad[4] = { 1.0, 0.0, 0.0, 0.0 };
+    bad[3] = strtod("nan", NULL);
+    memset(err, 'A', sizeof err);
+    CHECK(doe_eigen_sym(bad, 2, vals, vecs, err) != 0);
+    CHECK(strstr(err, "finite") != NULL);
+
+    /* the zero matrix is entirely flat, and must say so rather than divide */
+    double Z[4] = { 0, 0, 0, 0 };
+    CHECK(doe_eigen_sym(Z, 2, vals, vecs, err) == 0);
+    CHECK(vals[0] == 0.0 && vals[1] == 0.0);
+
+    /* 1x1 */
+    double one[1] = { -3.5 };
+    CHECK(doe_eigen_sym(one, 1, vals, vecs, err) == 0);
+    CHECK(fabs(vals[0] + 3.5) < 1e-12);
+    CHECK(fabs(vecs[0] - 1.0) < 1e-12);
+    return 1;
+}
+
 static int test_quantiles(void) {
     double v[9] = {9, 1, 8, 2, 7, 3, 6, 4, 5};
     CHECK_DBL(doe_median(v, 9), 5.0, 1e-12);
@@ -675,6 +804,10 @@ int main(void) {
     RUN_TEST(test_ols_reports_direction);
     RUN_TEST(test_ols_ranks_beat_values_on_curvature);
     RUN_TEST(test_ols_rejects_degenerate);
+    RUN_TEST(test_eigen_diagonal_and_known);
+    RUN_TEST(test_eigen_resolves_the_flat_direction);
+    RUN_TEST(test_eigen_is_deterministic_and_sign_normalised);
+    RUN_TEST(test_eigen_rejects_and_handles_edges);
     RUN_TEST(test_quantiles);
     RUN_TEST(test_prng_determinism);
     RUN_TEST(test_prng_uniform_range);

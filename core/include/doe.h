@@ -216,6 +216,35 @@ double doe_variance(const double *x, size_t n);   /* sample variance (n-1) */
 double doe_std(const double *x, size_t n);
 
 /* ============================================================================
+ * Linear algebra
+ * ============================================================================ */
+
+/*
+ * Symmetric eigendecomposition by cyclic Jacobi.
+ *
+ * A is n*n row-major and is NOT modified; n is at most 16, which is far more
+ * than any factor count this suite accepts. `vals` receives the n eigenvalues
+ * sorted by DESCENDING absolute value, so the stiffest direction comes first
+ * and the flat ones land together at the end. `vecs` receives the matching
+ * orthonormal eigenvectors as ROWS, each sign-normalised so its
+ * largest-magnitude component is positive.
+ *
+ * That ordering and sign convention are part of the contract: tools write
+ * eigenpairs into JSON that the examples suite diffs against committed
+ * output, so a decomposition that permuted or flipped between runs would be
+ * unusable even though it was mathematically correct.
+ *
+ * Input is symmetrised (the mean of each off-diagonal pair) before the
+ * sweeps, so a caller assembling A from a fit need not worry about rounding
+ * asymmetry.
+ *
+ * Returns 0, or -1 with err filled (bad dimension, non-finite entry, or no
+ * convergence).
+ */
+int doe_eigen_sym(const double *A, size_t n, double *vals, double *vecs,
+                  char *err);
+
+/* ============================================================================
  * JSON helpers
  * ============================================================================ */
 

@@ -42,7 +42,7 @@ suites; valgrind clean on all nine; ASan/UBSan clean; both fuzzers clean;
 | E3 | ~ `morris --groups` + `bifurcate` ✓; `pawn` and `morris analyze --dgsm` pending |
 | E2 | ✓ complete — `morris converge` + `sobol converge` |
 | E5 | ✓ complete — `noise:`, crossed designs, S/N ratios, `taguchi robust` |
-| E4 | ✓ complete — `rsm`: central composite design, quadratic fit, stationary point |
+| E4 | ✓ complete — `rsm`: central composite design, quadratic fit, stationary point, canonical analysis (ridges) |
 | E7 | ~ `pareto` ✓ and `desire` ✓; the front-vs-scalar tooling is complete |
 | E6 | ~ PCE pending; Shapley is a stated non-goal until `.space` supports correlated inputs |
 

@@ -185,17 +185,43 @@ Stationary point is a maximum
 Predicted taste: 101.745
 
 factor                      coded          value
-butter                         -0           0.75
+butter                          0           0.75
 temp                      -0.2806        369.047
+
+direction  curvature      eigenvalue  std error       butter         temp
+d1         curves down         -8.32     0.3219        1.000        0.000
+d2         curves down         -6.28     0.3219        0.000        1.000
 ```
 
 369 °F, and it never appeared in any design — that's the point of fitting a
 curve rather than picking a winner.
 
+The second table is the **canonical analysis**: which way the surface curves,
+and how hard. Both directions curve *down* here, which is what makes this a
+real peak rather than a ledge — and the eigenvalues say butter (−8.3) is the
+tighter of the two, so it is the one to hold closest.
+
 **When there is no single answer, it says so.** Try it on `temp` and `time`
-together and you get *saddle* — correct, because those two trade off against
-each other along a ridge. Any temp/time pair that browns the same is equally
-good, and the tool refuses to invent a winner.
+together and you get a **stationary ridge**:
+
+```
+Stationary ridge -- no single best setting
+Predicted taste: 102.007, anywhere along the ridge
+
+direction  curvature      eigenvalue  std error         temp         time
+d1         curves down        -7.979     0.9181        0.897        0.441
+d2         flat                0.179     0.9181       -0.441        0.897
+
+The surface does not change along the flat direction:
+  d2 = -0.441 temp, +0.897 time
+```
+
+That is the browning interaction seen from the other side: hot-and-quick
+browns like cool-and-slow, so a whole *line* of temp/time pairs tastes the
+same and there is no single winner to name. The flat direction is the useful
+part — 0.179 ± 0.918 is curvature indistinguishable from none, so you may
+slide along that line for free and pick the end that is cheapest. Here that
+means a shorter bake at a higher temperature costs you nothing in taste.
 
 ---
 

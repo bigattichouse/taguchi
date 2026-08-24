@@ -43,7 +43,7 @@ a page you can hand someone.
 | `ofat`    | one-factor-at-a-time confirmation — is that effect real? |
 | `grid`    | small full-factorial — resolve an interaction exactly |
 | `taguchi` | orthogonal arrays: optimize, `confirm` a prediction, `robust` design |
-| `rsm`     | response surface — quadratic fit, stationary point |
+| `rsm`     | response surface — quadratic fit, stationary point, canonical analysis (ridges) |
 | `pareto`  | multi-objective frontier — filter + accumulating `.front` store |
 | `desire`  | Derringer–Suich desirability — several metrics into one |
 | `regress` | SRC/SRRC + R² — the *direction* of each effect |
