@@ -713,6 +713,45 @@ Two things worth carrying forward:
 
 ---
 
+**A test matrix chosen so the answer is checkable is a matrix that is easy to
+decompose.** `doe_eigen_sym` (E4's canonical analysis, commit `80571fa`) judged
+convergence by the sum of squares of the off-diagonal against `1e-18 · scale²`.
+That is wrong by a square: a threshold on a sum of *squares* reading as 1e-18
+accepts individual off-diagonal entries near `1e-9 · scale`, which is error in
+the eigenvectors and not leftover rounding. It passed a diagonal matrix,
+`[[2,1],[1,2]]`, the rank-1 ridge, a 3×3, and all 56 `rsm` CLI assertions —
+every one of them well enough conditioned to converge far past a sloppy
+threshold anyway. Sweeping 200 seeded random symmetric matrices, it failed on
+the fourth. Fixed 2026-08-24 in `0995f24`.
+
+- **The bias is structural, not carelessness.** A matrix picked so the expected
+  eigenvalues can be written into the assertion is, for exactly that reason, a
+  well-conditioned one. The same holds for any hand-built fixture: the property
+  that makes it checkable often makes it easy.
+- **Sweep random input against the whole contract, not one property.** The
+  replacement checks eigenpairs, mutual orthogonality, the descending-|λ| order
+  *and* the sign convention across 200 matrices — and it was the sign
+  convention that turned out to have never executed at all, because every
+  earlier fixture came out of Jacobi already normalised. A documented guarantee
+  with a dead enforcement branch is worse than an undocumented one.
+- **Terminate on an equality, not a tolerance you have to defend.** The sweep
+  now zeroes any off-diagonal too small to change either diagonal entry it sits
+  between, so the sum reaches exactly `0.0`. There is no constant left to get
+  wrong by a square.
+
+**Definiteness tests cannot express a ridge, at any tolerance.** `rsm` classified
+its stationary point from Sylvester's criterion on the leading principal minors.
+That tests *strict* definiteness; positive/negative **semi**definiteness needs
+all `2ᵏ−1` principal minors rather than the `k` leading ones — and semidefinite
+`B` is precisely what a ridge is. So a flat ridge came back as a confident point
+maximum (with `within_design_region` true, so no guardrail fired) and a 1e-7
+curvature perturbation flipped the verdict between maximum and saddle. The
+lesson is that this was **not a threshold to tune**: the instrument could not
+represent the answer, and eigenvalues were needed to make `λᵢ = 0` a reportable
+outcome rather than a gap. See `spec/rsm-canonical-analysis.md`.
+
+---
+
 ## Measurements worth keeping
 
 - **μ\* ranks like S_T but gives no magnitude** — Spearman 0.923, ratio spread
@@ -738,6 +777,18 @@ Two things worth carrying forward:
   gave **4.5× the error of N=16384** while running 22% more points, because the
   sequence's uniformity is a property of aligned 2^m blocks (Saltelli §5.1
   consideration 1). The `sobol` CLI notes this when it sees one. (check G.)
+- **Jacobi's convergence test was costing 5 orders of magnitude** — worst
+  residual of `|Aq − λq|` over 200 random symmetric matrices went from
+  **2.49e-9** to **1.78e-14** when the off-diagonal test stopped comparing a
+  sum of squares against a linear-looking threshold. The suite's tolerance is
+  now 1e-11: loose enough for the real 2e-14, tight enough to reject the
+  2.5e-9 it used to produce.
+- **A ridge's flat direction is not detectable by magnitude alone** — on the
+  cookies temp × time surface the flat eigenvalue is **0.179 ± 0.918**, i.e.
+  1/45th of the curved one but nowhere near zero in absolute terms. Only the
+  comparison against its own standard error calls it flat, which is why `rsm`
+  keeps `(XᵀX)⁻¹` rather than just solving. A noiseless response needs the
+  separate numerical floor, since `SSE = 0` makes every standard error zero.
 - **Joe & Kuo's Property A boundary is exactly where they say** — their page
   claims dimension 1111 for the D(6) set; measured as a GF(2) rank, it holds
   through 1111 and first fails at **1112**. This is what caps `sobol` at 512
@@ -751,6 +802,13 @@ Two things worth carrying forward:
   `fork`/`pipe`/`exec` failure paths and the final `_exit` statements. This is
   near-irreducible; the child-attribution problem was already fixed with
   `__gcov_dump()` under `-DDOE_COVERAGE`.
+- `core/src/linalg.c` reads 97% and `optimize/rsm/src/cli/main.c` 96%; the
+  remainder is defensive and stays that way. Jacobi's no-convergence branch
+  (it uses ~10 of its 60 permitted sweeps), `invert`'s partial-pivot row swap
+  (a CCD's `XᵀX` never needs one), `t_crit_95`'s `df > 30` fallback (a CCD
+  gives 5 or 7), and three error paths a caller cannot reach because the design
+  matrix is generated internally rather than read. Reaching them needs fault
+  injection; deleting the guards to reach 100% would be worse than the gap.
 - `sources/pdf/` is gitignored; `sources/fetch.sh` re-fetches what is public.
   Two papers are paywalled and supplied manually — see `sources/README.md`,
   which summarises every source with citations and URLs precisely because the
